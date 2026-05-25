@@ -1,0 +1,177 @@
+#!/bin/bash
+# Build and sign an Android release APK with a YubiKey, then publish it as a
+# draft GitHub release.
+#
+# Usage:
+#   ./release vX.Y.Z
+
+set -euo pipefail
+
+die() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+normalize_fp() {
+  local fp="${1//[[:space:]:]/}"
+  echo "${fp,,}"
+}
+
+cd "$(dirname "$0")"
+
+readonly CERT_FILE="CERT.sha256"
+APP_NAME=""
+readonly PKCS11_LIB="/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so"
+EXPECTED_CERT=""
+[[ -f "${CERT_FILE}" ]] && EXPECTED_CERT="$(normalize_fp "$(<"${CERT_FILE}")")"
+
+TAG="${1:-}"
+[[ -n "${TAG}" ]] || die "usage: $0 <vX.Y.Z>"
+semver='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
+semver+='(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+semver+='(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?'
+semver+='(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$'
+[[ "${TAG}" =~ ${semver} ]] || die "invalid version tag"
+VERSION_NAME="${TAG#v}"
+VERSION_MAJOR="${BASH_REMATCH[1]}"
+VERSION_MINOR="${BASH_REMATCH[2]}"
+VERSION_PATCH="${BASH_REMATCH[3]}"
+
+PRERELEASE="${VERSION_NAME%%+*}"
+if [[ "${PRERELEASE}" == *-* ]]; then
+  PRERELEASE="${PRERELEASE#*-}"
+else
+  PRERELEASE=""
+fi
+if [[ -z "${PRERELEASE}" ]]; then
+  PRE_ORDINAL=999
+else
+  PRE_CHANNEL="${PRERELEASE%%.*}"
+  if [[ "${PRERELEASE}" == *.* ]]; then
+    PRE_NUM="${PRERELEASE#*.}"
+  else
+    PRE_NUM=0
+  fi
+  [[ "${PRE_NUM}" =~ ^[0-9]+$ && "${PRE_NUM}" -lt 100 ]] ||
+    die "prerelease number must be numeric and < 100 (got '${PRE_NUM}')"
+  case "${PRE_CHANNEL}" in
+    alpha) PRE_ORDINAL=$((PRE_NUM)) ;;
+    beta) PRE_ORDINAL=$((100 + PRE_NUM)) ;;
+    rc) PRE_ORDINAL=$((200 + PRE_NUM)) ;;
+    *) die "unknown prerelease channel '${PRE_CHANNEL}' (use alpha|beta|rc)" ;;
+  esac
+fi
+
+# Pack the channel into versionCode so it strictly increases across prereleases
+# (alpha < beta < rc < final). Bounds keep it inside a signed 32-bit int.
+((VERSION_MAJOR <= 210 && VERSION_MINOR < 100 && VERSION_PATCH < 100)) ||
+  die "version out of range for versionCode (major <= 210, minor/patch < 100)"
+VERSION_CODE=$((VERSION_MAJOR * 10000000 + VERSION_MINOR * 100000))
+VERSION_CODE=$((VERSION_CODE + VERSION_PATCH * 1000 + PRE_ORDINAL))
+
+command -v gh >/dev/null || die "gh not found"
+gh auth status >/dev/null 2>&1 || die "gh not authenticated, run: gh auth login"
+command -v java >/dev/null || die "java not found"
+[[ -f "${PKCS11_LIB}" ]] || die "PKCS#11 module not found at ${PKCS11_LIB}"
+[[ -z "$(git status --porcelain)" ]] || die "working tree not clean"
+gh release view "${TAG}" >/dev/null 2>&1 &&
+  die "release ${TAG} already exists"
+
+SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-${HOME}/Android/Sdk}}"
+[[ -d "${SDK}/build-tools" ]] || die "Android build-tools not found in ${SDK}"
+BT=$(printf '%s\n' "${SDK}"/build-tools/[0-9]* | sort -V | tail -1)
+[[ -d "${BT}" ]] || die "no versioned build-tools dir under ${SDK}/build-tools"
+[[ -x "${BT}/zipalign" && -f "${BT}/lib/apksigner.jar" ]] ||
+  die "zipalign/apksigner missing under ${BT}"
+
+OUT="build/release"
+mkdir -p "${OUT}"
+NOTES="${OUT}/release-notes.md"
+
+echo ">> Building release APK (version ${VERSION_NAME}, code ${VERSION_CODE})"
+./gradlew :app:assembleRelease \
+  -PappVersionName="${VERSION_NAME}" \
+  -PappVersionCode="${VERSION_CODE}"
+
+shopt -s nullglob
+RELEASE_APKS=(app/build/outputs/apk/release/*-release-unsigned.apk)
+shopt -u nullglob
+((${#RELEASE_APKS[@]} == 1)) ||
+  die "expected exactly one *-release-unsigned.apk, found ${#RELEASE_APKS[@]}"
+UNSIGNED="${RELEASE_APKS[0]}"
+APK_BASE="$(basename "${UNSIGNED}" -release-unsigned.apk)"
+ALIGNED="${OUT}/${APK_BASE}-${TAG}-aligned.apk"
+SIGNED="${OUT}/${APK_BASE}-${TAG}.apk"
+
+if [[ -z "${APP_NAME}" ]]; then
+  APP_NAME="$("${BT}/aapt2" dump badging "${UNSIGNED}" 2>/dev/null |
+    sed -n "s/.*application-label:'\([^']*\)'.*/\1/p" | head -1)"
+fi
+[[ -n "${APP_NAME}" ]] || APP_NAME="${APK_BASE}"
+
+# Must run before signing: the v2/v3 signature covers the aligned bytes.
+echo ">> Aligning the APK (zipalign)"
+"${BT}/zipalign" -p -f 4 "${UNSIGNED}" "${ALIGNED}"
+
+echo ">> Signing with the YubiKey"
+PKCS11_CFG="$(mktemp)"
+trap 'rm -f "$PKCS11_CFG" "$ALIGNED"' EXIT
+printf 'name = OpenSC\nlibrary = %s\n' "${PKCS11_LIB}" >"${PKCS11_CFG}"
+# Read the PIN ourselves so the touch prompt lands right after it, and so it
+# never reaches argv or disk.
+read -rsp '>> Enter YubiKey PIN: ' YUBIKEY_PIN
+echo
+echo ">> Please touch your device"
+
+# --add-exports exposes the internal SunPKCS11 class to apksigner. v1/v4 stay
+# off because minSdk >= 24 covers v2/v3. The grep drops apksigner's spurious
+# "Keystore password" line, and PIPESTATUS preserves its real exit code.
+set +e
+printf '%s\n' "${YUBIKEY_PIN}" |
+  java --add-exports jdk.crypto.cryptoki/sun.security.pkcs11=ALL-UNNAMED \
+    -jar "${BT}/lib/apksigner.jar" sign \
+    --ks NONE --ks-type PKCS11 \
+    --provider-class sun.security.pkcs11.SunPKCS11 \
+    --provider-arg "${PKCS11_CFG}" \
+    --ks-key-alias "Certificate for Digital Signature" \
+    --ks-pass stdin \
+    --v1-signing-enabled false \
+    --v4-signing-enabled false \
+    --out "${SIGNED}" "${ALIGNED}" |
+  grep -v '^Keystore password for signer #'
+SIGN_RC=${PIPESTATUS[1]}
+set -e
+unset YUBIKEY_PIN
+((SIGN_RC == 0)) || die "apksigner signing failed (exit ${SIGN_RC})"
+
+echo ">> Verifying signature"
+GOT=$(java -jar "${BT}/lib/apksigner.jar" verify --print-certs "${SIGNED}" |
+  awk '/SHA-256 digest:/ {print $NF; exit}')
+GOT_NORM=$(normalize_fp "${GOT}")
+CERT_FMT=$(sed -E 's/(..)/\1:/g; s/:$//' <<<"${GOT_NORM^^}")
+if [[ -n "${EXPECTED_CERT}" ]]; then
+  [[ "${GOT_NORM}" == "${EXPECTED_CERT}" ]] ||
+    die "signing-cert ${CERT_FMT} does not match ${CERT_FILE}"
+  echo "   Cert SHA-256 OK"
+else
+  echo "   Cert SHA-256 ${CERT_FMT} (${CERT_FILE} absent, not pinned)"
+fi
+
+cat >"${NOTES}" <<EOF
+<!-- changelog -->
+
+SHA-256 signing certificate fingerprint:
+\`${CERT_FMT}\`
+EOF
+
+SHA="$(git rev-parse HEAD)"
+git merge-base --is-ancestor "${SHA}" origin/main 2>/dev/null ||
+  die "HEAD (${SHA:0:10}) isn't on origin/main, 'git push' first"
+
+echo ">> Creating draft GitHub release for ${TAG} @ ${SHA:0:10}"
+gh release create "${TAG}" --target "${SHA}" --title "${APP_NAME} ${TAG}" \
+  --notes-file "${NOTES}" --draft "${SIGNED}"
+
+echo
+echo "Done: draft ${TAG}"
+echo "Add the changelog, then publish: gh release edit ${TAG} --draft=false"
