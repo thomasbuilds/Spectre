@@ -302,25 +302,26 @@ class LanScanner(
     port: Int,
     timeoutMs: Int,
     payload: ByteArray?
-  ): String? = probeGate.withPermit {
-    val channel = AsynchronousSocketChannel.open()
-    try {
-      withTimeoutOrNull(timeoutMs.toLong()) {
-        connectAsync(channel, InetSocketAddress(host, port))
-        if (payload != null) {
-          writeAsync(channel, ByteBuffer.wrap(payload))
+  ): String? =
+    probeGate.withPermit {
+      val channel = AsynchronousSocketChannel.open()
+      try {
+        withTimeoutOrNull(timeoutMs.toLong()) {
+          connectAsync(channel, InetSocketAddress(host, port))
+          if (payload != null) {
+            writeAsync(channel, ByteBuffer.wrap(payload))
+          }
+          val buf = ByteBuffer.allocate(4096)
+          val read = readAsync(channel, buf)
+          if (read <= 0) null else String(buf.array(), 0, read, Charsets.ISO_8859_1)
         }
-        val buf = ByteBuffer.allocate(4096)
-        val read = readAsync(channel, buf)
-        if (read <= 0) null else String(buf.array(), 0, read, Charsets.ISO_8859_1)
+      } catch (e: Throwable) {
+        if (isPolicyBlock(e)) localAccessBlocked = true
+        null
+      } finally {
+        runCatching { channel.close() }
       }
-    } catch (e: Throwable) {
-      if (isPolicyBlock(e)) localAccessBlocked = true
-      null
-    } finally {
-      runCatching { channel.close() }
     }
-  }
 
   private fun httpGet(host: String): ByteArray =
     "GET / HTTP/1.0\r\nHost: $host\r\nUser-Agent: Spectre-Recon\r\nConnection: close\r\n\r\n"
@@ -330,20 +331,21 @@ class LanScanner(
     host: String,
     port: Int,
     timeoutMs: Int
-  ): Boolean = probeGate.withPermit {
-    val channel = AsynchronousSocketChannel.open()
-    try {
-      withTimeoutOrNull(timeoutMs.toLong()) {
-        connectAsync(channel, InetSocketAddress(host, port))
-        true
-      } ?: false
-    } catch (e: Throwable) {
-      if (isPolicyBlock(e)) localAccessBlocked = true
-      false
-    } finally {
-      runCatching { channel.close() }
+  ): Boolean =
+    probeGate.withPermit {
+      val channel = AsynchronousSocketChannel.open()
+      try {
+        withTimeoutOrNull(timeoutMs.toLong()) {
+          connectAsync(channel, InetSocketAddress(host, port))
+          true
+        } ?: false
+      } catch (e: Throwable) {
+        if (isPolicyBlock(e)) localAccessBlocked = true
+        false
+      } finally {
+        runCatching { channel.close() }
+      }
     }
-  }
 
   private suspend fun connectAsync(
     channel: AsynchronousSocketChannel,
@@ -353,8 +355,15 @@ class LanScanner(
       addr,
       null,
       object : CompletionHandler<Void?, Any?> {
-        override fun completed(result: Void?, attachment: Any?) = cont.resume(Unit)
-        override fun failed(exc: Throwable, attachment: Any?) = cont.resumeWithException(exc)
+        override fun completed(
+          result: Void?,
+          attachment: Any?
+        ) = cont.resume(Unit)
+
+        override fun failed(
+          exc: Throwable,
+          attachment: Any?
+        ) = cont.resumeWithException(exc)
       }
     )
     cont.invokeOnCancellation { runCatching { channel.close() } }
@@ -363,32 +372,48 @@ class LanScanner(
   private suspend fun writeAsync(
     channel: AsynchronousSocketChannel,
     buf: ByteBuffer
-  ): Int = suspendCancellableCoroutine { cont ->
-    channel.write(
-      buf,
-      null,
-      object : CompletionHandler<Int, Any?> {
-        override fun completed(result: Int, attachment: Any?) = cont.resume(result)
-        override fun failed(exc: Throwable, attachment: Any?) = cont.resumeWithException(exc)
-      }
-    )
-    cont.invokeOnCancellation { runCatching { channel.close() } }
-  }
+  ): Int =
+    suspendCancellableCoroutine { cont ->
+      channel.write(
+        buf,
+        null,
+        object : CompletionHandler<Int, Any?> {
+          override fun completed(
+            result: Int,
+            attachment: Any?
+          ) = cont.resume(result)
+
+          override fun failed(
+            exc: Throwable,
+            attachment: Any?
+          ) = cont.resumeWithException(exc)
+        }
+      )
+      cont.invokeOnCancellation { runCatching { channel.close() } }
+    }
 
   private suspend fun readAsync(
     channel: AsynchronousSocketChannel,
     buf: ByteBuffer
-  ): Int = suspendCancellableCoroutine { cont ->
-    channel.read(
-      buf,
-      null,
-      object : CompletionHandler<Int, Any?> {
-        override fun completed(result: Int, attachment: Any?) = cont.resume(result)
-        override fun failed(exc: Throwable, attachment: Any?) = cont.resumeWithException(exc)
-      }
-    )
-    cont.invokeOnCancellation { runCatching { channel.close() } }
-  }
+  ): Int =
+    suspendCancellableCoroutine { cont ->
+      channel.read(
+        buf,
+        null,
+        object : CompletionHandler<Int, Any?> {
+          override fun completed(
+            result: Int,
+            attachment: Any?
+          ) = cont.resume(result)
+
+          override fun failed(
+            exc: Throwable,
+            attachment: Any?
+          ) = cont.resumeWithException(exc)
+        }
+      )
+      cont.invokeOnCancellation { runCatching { channel.close() } }
+    }
 
   private fun isPolicyBlock(error: Throwable): Boolean {
     var cause: Throwable? = error
