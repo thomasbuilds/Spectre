@@ -131,6 +131,7 @@ class BluetoothScanner(
   private fun handle(result: ScanResult) {
     val mac = result.device?.address ?: return
     val rssi = result.rssi
+    if (rssi > 20 || rssi < -127) return
     val previous = deviceCache[mac]
     val sampleCount = (previous?.sampleCount ?: 0) + 1
     val smoothedRssi =
