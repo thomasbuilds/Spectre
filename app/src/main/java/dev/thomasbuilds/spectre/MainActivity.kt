@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -54,17 +55,23 @@ class MainActivity : ComponentActivity() {
     }
 
   private val requiredPermissions: Array<String> =
-    arrayOf(
-      Manifest.permission.READ_PHONE_STATE,
-      Manifest.permission.ACCESS_FINE_LOCATION,
-      Manifest.permission.ACCESS_COARSE_LOCATION,
-      Manifest.permission.ACCESS_WIFI_STATE,
-      Manifest.permission.CHANGE_WIFI_STATE,
-      Manifest.permission.BLUETOOTH_SCAN,
-      Manifest.permission.BLUETOOTH_CONNECT,
-      Manifest.permission.BLUETOOTH_ADVERTISE,
-      Manifest.permission.POST_NOTIFICATIONS
-    )
+    buildList {
+      add(Manifest.permission.READ_PHONE_STATE)
+      add(Manifest.permission.ACCESS_FINE_LOCATION)
+      add(Manifest.permission.ACCESS_COARSE_LOCATION)
+      add(Manifest.permission.ACCESS_WIFI_STATE)
+      add(Manifest.permission.CHANGE_WIFI_STATE)
+      add(Manifest.permission.BLUETOOTH_SCAN)
+      add(Manifest.permission.BLUETOOTH_CONNECT)
+      add(Manifest.permission.BLUETOOTH_ADVERTISE)
+      add(Manifest.permission.POST_NOTIFICATIONS)
+      // ACCESS_LOCAL_NETWORK is the runtime permission introduced in Android 16 that gates LAN
+      // access (including WifiInfo.bssid for the Connected label, mDNS, SSDP, and unicast TCP).
+      // Mandatory on Android 17 for apps targeting SDK 37+.
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+        add("android.permission.ACCESS_LOCAL_NETWORK")
+      }
+    }.toTypedArray()
 
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
