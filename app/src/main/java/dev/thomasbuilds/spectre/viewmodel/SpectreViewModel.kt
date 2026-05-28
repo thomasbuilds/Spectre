@@ -109,16 +109,6 @@ class SpectreViewModel(
     }
   }
 
-  fun stopServiceIfRunning() {
-    val ctx = getApplication<Application>()
-    if (isBound) {
-      runCatching { ctx.unbindService(connection) }
-      isBound = false
-      boundService.value = null
-    }
-    runCatching { ctx.stopService(Intent(ctx, RFMonitorService::class.java)) }
-  }
-
   override fun onCleared() {
     super.onCleared()
     if (isBound) {

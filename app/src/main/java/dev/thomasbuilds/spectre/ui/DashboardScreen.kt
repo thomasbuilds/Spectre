@@ -99,8 +99,6 @@ fun DashboardScreen(
     }
   }
 
-  var pendingPermissionSource by rememberSaveable { mutableStateOf<SignalSource?>(null) }
-
   var showWifiDialog by rememberSaveable { mutableStateOf(false) }
   var showLocationDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -108,16 +106,12 @@ fun DashboardScreen(
     rememberLauncherForActivityResult(
       ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
-      val source = pendingPermissionSource
-      pendingPermissionSource = null
       val firstDenied = results.entries.firstOrNull { !it.value }?.key ?: return@rememberLauncherForActivityResult
       val activity = context as? Activity
       val canPromptAgain = activity?.shouldShowRequestPermissionRationale(firstDenied) == true
       if (!canPromptAgain) {
         openAppPermissionSettings(context)
       }
-      @Suppress("UNUSED_EXPRESSION")
-      source
     }
 
   val bluetoothEnableLauncher =
@@ -149,7 +143,6 @@ fun DashboardScreen(
       }
 
       ScannerStatus.NO_PERMISSION -> {
-        pendingPermissionSource = source
         permissionLauncher.launch(permissionsForSource(source))
       }
 
