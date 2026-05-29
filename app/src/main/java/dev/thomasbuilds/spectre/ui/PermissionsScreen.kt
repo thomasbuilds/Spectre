@@ -41,10 +41,9 @@ fun PermissionsScreen(onContinue: () -> Unit) {
           .fillMaxSize()
           .verticalScroll(rememberScrollState())
           .padding(insets)
-          .padding(horizontal = 24.dp, vertical = 32.dp),
+          .padding(24.dp),
       horizontalAlignment = Alignment.Start
     ) {
-      Spacer(Modifier.height(32.dp))
       Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
           imageVector = ImageVector.vectorResource(R.drawable.ic_launcher_foreground),
@@ -94,10 +93,10 @@ fun PermissionsScreen(onContinue: () -> Unit) {
       )
       Row(
         title = "Notifications",
-        desc = "Show the foreground monitor notification so scanning continues in the background."
+        desc = "Show the ongoing monitor notification with your live RF exposure reading."
       )
       Row(
-        title = "Local network (INTERNET)",
+        title = "Local network (internet)",
         desc =
           "Required by the Recon screen for host discovery + port scans + mDNS on the LAN " +
             "you're connected to."
