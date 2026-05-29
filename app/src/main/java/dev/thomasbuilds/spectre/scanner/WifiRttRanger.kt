@@ -20,8 +20,6 @@ class WifiRttRanger(
 ) {
   data class FtmReading(
     val distanceM: Double,
-    val stdDevM: Double,
-    val rssi: Int,
     val timestampMs: Long
   )
 
@@ -99,8 +97,6 @@ class WifiRttRanger(
                 cache[mac] =
                   FtmReading(
                     distanceM = r.distanceMm / 1000.0,
-                    stdDevM = r.distanceStdDevMm / 1000.0,
-                    rssi = r.rssi,
                     timestampMs = now
                   )
               }

@@ -200,10 +200,6 @@ class RFMonitorService : Service() {
 
   override fun onUnbind(intent: Intent?): Boolean = true
 
-  override fun onRebind(intent: Intent?) {
-    super.onRebind(intent)
-  }
-
   override fun onDestroy() {
     combineJob?.cancel()
     notificationJob?.cancel()

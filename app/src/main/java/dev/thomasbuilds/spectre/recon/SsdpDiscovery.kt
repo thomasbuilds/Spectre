@@ -17,7 +17,6 @@ data class SsdpDevice(
   val ip: String,
   val location: String?,
   val server: String?,
-  val st: String?,
   val usn: String
 )
 
@@ -108,7 +107,6 @@ class SsdpDiscovery(
       ip = fromIp,
       location = headers["location"],
       server = headers["server"],
-      st = headers["st"] ?: headers["nt"],
       usn = usn
     )
   }

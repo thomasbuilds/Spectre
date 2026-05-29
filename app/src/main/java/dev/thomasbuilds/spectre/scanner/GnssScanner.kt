@@ -58,8 +58,6 @@ class GnssScanner(
     val elevationDeg: Float,
     val azimuthDeg: Float,
     val usedInFix: Boolean,
-    val hasEphemeris: Boolean,
-    val hasAlmanac: Boolean,
     val carrierHz: Float?
   )
 
@@ -78,8 +76,6 @@ class GnssScanner(
               elevationDeg = status.getElevationDegrees(i),
               azimuthDeg = status.getAzimuthDegrees(i),
               usedInFix = status.usedInFix(i),
-              hasEphemeris = status.hasEphemerisData(i),
-              hasAlmanac = status.hasAlmanacData(i),
               carrierHz = if (status.hasCarrierFrequencyHz(i)) status.getCarrierFrequencyHz(i) else null
             )
           )
