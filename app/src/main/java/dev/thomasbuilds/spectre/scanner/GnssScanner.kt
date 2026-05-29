@@ -283,7 +283,6 @@ class GnssScanner(
   }
 
   fun stop() {
-    if (!registered) return
     runCatching {
       lm?.unregisterGnssStatusCallback(callback)
       lm?.removeUpdates(locationListener)
