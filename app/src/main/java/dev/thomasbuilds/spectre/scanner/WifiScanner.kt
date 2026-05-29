@@ -86,14 +86,14 @@ class WifiScanner(
         val sanitized = if (rssi == Int.MIN_VALUE) null else sanitizeRssi(rssi)
         if (sanitized != liveConnectedRssi) {
           liveConnectedRssi = sanitized
-          publishNow()
+          callbackExecutor.execute { publishNow() }
         }
       }
 
       override fun onLost(network: Network) {
         if (liveConnectedRssi != null) {
           liveConnectedRssi = null
-          publishNow()
+          callbackExecutor.execute { publishNow() }
         }
       }
     }
