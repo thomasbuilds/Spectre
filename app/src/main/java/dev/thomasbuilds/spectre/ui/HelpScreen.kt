@@ -141,26 +141,6 @@ private val GLOSSARY =
         e(
           "RF exposure",
           "The total radio power reaching your phone right now, summed across cellular, WiFi, and Bluetooth into one figure. It is dominated by the strongest nearby emitters."
-        ),
-        e(
-          "Measuring",
-          "Shown while a source is still warming up. The gauge stays neutral until every source has enough data to trust the total."
-        ),
-        e(
-          "Gauge color",
-          "Green is low received power, rising through yellow and orange to red as the strongest signals around you get stronger."
-        )
-      )
-    ),
-    GlossarySection(
-      "Distance and confidence",
-      listOf(
-        e("Distance", "An estimate of how far away an emitter is. It is never exact, so each estimate carries a confidence level."),
-        e("Pending", "Not enough samples have arrived yet to estimate distance."),
-        e("Approximate", "Estimated from signal strength with a path-loss model. Walls, bodies, and interference all skew it."),
-        e(
-          "Calibrated",
-          "Derived from true ranging (WiFi FTM, cellular timing advance, or a beacon's stated 1 metre power), so it is more trustworthy than Approximate."
         )
       )
     ),
@@ -221,8 +201,7 @@ private val GLOSSARY =
           "Management Frame Protection, which blocks forced-disconnect attacks. Shown as Required, Capable, or Not advertised."
         ),
         e("802.11mc FTM", "Fine Timing Measurement, which lets the phone range the access point for an accurate distance."),
-        e("Passpoint", "Hotspot 2.0: automatic, secure roaming onto partner networks."),
-        e("THROTTLED", "Android's WiFi scan rate limit is active, so the list refreshes more slowly.")
+        e("Passpoint", "Hotspot 2.0: automatic, secure roaming onto partner networks.")
       )
     ),
     GlossarySection(
@@ -232,7 +211,6 @@ private val GLOSSARY =
         e("RSSI", "Received signal strength, in dBm."),
         e("Adv TX power", "The transmit power the device claims it is broadcasting at."),
         e("iBeacon RSSI@1m", "The signal strength a beacon says it produces at 1 metre, used to estimate distance."),
-        e("Connectable", "Whether the device accepts connections. The 'alternates' note means it switches between connectable and not."),
         e("Address type", "Public (a permanent registered address), Random (a rotating privacy address), or Anonymous."),
         e("PHY", "The LE radio mode: 1M standard, 2M faster, or Coded for long range."),
         e("Service UUID", "Identifies a capability the device advertises (a GATT service)."),
@@ -242,8 +220,7 @@ private val GLOSSARY =
           "GATT",
           "Generic Attribute Profile, the tree of services and characteristics on a device. Inspecting it connects and reads those values."
         ),
-        e("Characteristic properties", "What a value supports: read, write, notify, indicate, and so on."),
-        e("Paired", "The device is bonded to your phone.")
+        e("Characteristic properties", "What a value supports: read, write, notify, indicate, and so on.")
       )
     ),
     GlossarySection(
@@ -258,7 +235,6 @@ private val GLOSSARY =
         e("Elevation", "Angle above the horizon, from 0 at the horizon to 90 directly overhead."),
         e("Azimuth", "Compass bearing to the satellite, where 0 is north."),
         e("Used in fix", "Whether this satellite is being used to compute your position."),
-        e("Position", "The point on the ground directly beneath the satellite."),
         e("Slant range", "Straight-line distance from you to the satellite."),
         e("Orbital altitude", "The satellite's height above the Earth's surface."),
         e(
