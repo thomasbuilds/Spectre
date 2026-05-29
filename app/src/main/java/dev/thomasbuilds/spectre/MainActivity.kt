@@ -59,8 +59,6 @@ class MainActivity : ComponentActivity() {
       add(Manifest.permission.READ_PHONE_STATE)
       add(Manifest.permission.ACCESS_FINE_LOCATION)
       add(Manifest.permission.ACCESS_COARSE_LOCATION)
-      add(Manifest.permission.ACCESS_WIFI_STATE)
-      add(Manifest.permission.CHANGE_WIFI_STATE)
       add(Manifest.permission.BLUETOOTH_SCAN)
       add(Manifest.permission.BLUETOOTH_CONNECT)
       add(Manifest.permission.BLUETOOTH_ADVERTISE)
@@ -94,7 +92,7 @@ class MainActivity : ComponentActivity() {
         .collectAsStateWithLifecycle(initialValue = Settings.DEFAULTS)
 
       SpectreTheme(mode = settings.themeMode) {
-        var permissionsRequested by remember { mutableStateOf(allRequiredGranted()) }
+        var permissionsRequested by remember { mutableStateOf(hasEssentialPermissions()) }
         var screen by rememberSaveable { mutableStateOf(Screen.DASHBOARD) }
 
         val launcher =
@@ -164,8 +162,9 @@ class MainActivity : ComponentActivity() {
     super.onDestroy()
   }
 
-  private fun allRequiredGranted(): Boolean =
-    requiredPermissions.all { p ->
-      ContextCompat.checkSelfPermission(this, p) == PackageManager.PERMISSION_GRANTED
-    }
+  private fun hasEssentialPermissions(): Boolean =
+    ContextCompat.checkSelfPermission(
+      this,
+      Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
 }
