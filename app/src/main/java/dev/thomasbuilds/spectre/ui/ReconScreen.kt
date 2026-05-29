@@ -217,8 +217,7 @@ fun ReconScreen(onBack: () -> Unit) {
               "Host discovery uses TCP connect probes on common ports. mDNS " +
               "uses Android's NsdManager to list services advertising on the " +
               "network (AirPlay, Chromecast, IPP printers, Plex, etc.). " +
-              "Scanning is limited to your current LAN. Spectre makes no " +
-              "internet connections.",
+              "Scanning is limited to your current LAN.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
           )

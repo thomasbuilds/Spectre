@@ -67,9 +67,7 @@ fun PermissionsScreen(onContinue: () -> Unit) {
       )
       Spacer(Modifier.height(36.dp))
       Text(
-        "Spectre listens for signals broadcast at you and shows your live exposure. " +
-          "It is read-only. Spectre never transmits, never connects to networks, " +
-          "and has no network access of its own.",
+        "Spectre listens for signals broadcast at you and shows your live exposure.",
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurface
       )
@@ -102,11 +100,11 @@ fun PermissionsScreen(onContinue: () -> Unit) {
         title = "Local network (INTERNET)",
         desc =
           "Required by the Recon screen for host discovery + port scans + mDNS on the LAN " +
-            "you're connected to. Spectre never contacts the internet."
+            "you're connected to."
       )
       Spacer(Modifier.height(32.dp))
       Text(
-        "No analytics. No Google services. No outbound internet traffic.",
+        "No analytics. No Google services.",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
       )

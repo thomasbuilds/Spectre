@@ -132,7 +132,7 @@ fun SettingsScreen(
           InfoRow("Version", appVersion)
           InfoRow("Package", "dev.thomasbuilds.spectre")
           Text(
-            "Spectre is a passive RF environment monitor. It listens for cellular, WiFi, Bluetooth, and GNSS signals nearby and never transmits or connects to networks.",
+            "Spectre is a passive RF environment monitor. It listens for cellular, WiFi, Bluetooth, and GNSS signals nearby.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
