@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 class BluetoothScanner(
   private val context: Context
@@ -107,6 +108,11 @@ class BluetoothScanner(
 
   private val readiness = ReadinessTracker(BT_WARMUP_MS, BT_STALENESS_MS)
 
+  private val ingestExecutor =
+    Executors.newSingleThreadExecutor { r ->
+      Thread(r, "spectre-bt").apply { isDaemon = true }
+    }
+
   private val callback =
     object : ScanCallback() {
       override fun onScanResult(
@@ -114,12 +120,12 @@ class BluetoothScanner(
         result: ScanResult
       ) {
         lastResultMs = System.currentTimeMillis()
-        handle(result)
+        ingestExecutor.execute { handle(result) }
       }
 
       override fun onBatchScanResults(results: MutableList<ScanResult>) {
         lastResultMs = System.currentTimeMillis()
-        results.forEach(::handle)
+        ingestExecutor.execute { results.forEach(::handle) }
       }
 
       override fun onScanFailed(errorCode: Int) {
