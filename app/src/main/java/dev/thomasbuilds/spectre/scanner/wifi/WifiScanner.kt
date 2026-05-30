@@ -85,7 +85,7 @@ class WifiScanner(
         caps: NetworkCapabilities
       ) {
         val rssi = runCatching { caps.signalStrength }.getOrDefault(Int.MIN_VALUE)
-        val sanitized = if (rssi == Int.MIN_VALUE) null else sanitizeRssi(rssi)
+        val sanitized = sanitizeRssi(rssi)
         if (sanitized != liveConnectedRssi) {
           liveConnectedRssi = sanitized
           callbackExecutor.execute { publishNow() }
@@ -386,8 +386,7 @@ class WifiScanner(
   }
 
   private fun sanitizeRssi(raw: Int): Int? {
-    if (raw >= 0) return null
-    if (raw < -150) return null
+    if (raw == Int.MIN_VALUE || raw >= 0) return null
     return raw
   }
 

@@ -389,10 +389,7 @@ class CellularScanner(
   }
 
   private fun sanitizeDbm(raw: Int?): Int? {
-    if (raw == null) return null
-    if (raw == Int.MAX_VALUE) return null
-    if (raw == CellInfo.UNAVAILABLE) return null
-    if (raw < MIN_PLAUSIBLE_DBM || raw > MAX_PLAUSIBLE_DBM) return null
+    if (raw == null || raw == CellInfo.UNAVAILABLE) return null
     return raw
   }
 
@@ -459,7 +456,7 @@ class CellularScanner(
     val dbm = sanitizeDbm(rawDbm) ?: return null
     val bandwidthKhz = id.bandwidth.takeIf { it != Int.MAX_VALUE && it > 0 }
     val earfcn = id.earfcn.takeIf { it != Int.MAX_VALUE && it > 0 }
-    val exposureDbm = lteExposureDbm(ss, dbm, bandwidthKhz, earfcn)
+    val exposureDbm = lteExposureDbm(ss.rssi, dbm, bandwidthKhz, earfcn)
     val ci = sanitizeCellId(id.ci) ?: 0
     val ta = ss.timingAdvance
     val distance: Double? = if (ta in 1..1282) Distance.fromLteTimingAdvance(ta) else null
@@ -568,17 +565,14 @@ class CellularScanner(
   }
 
   private fun lteExposureDbm(
-    ss: CellSignalStrengthLte,
+    rssi: Int,
     rsrpDbm: Int,
     bandwidthKhz: Int?,
     earfcn: Int?
   ): Int {
     val now = System.currentTimeMillis()
-    val rssi = ss.rssi
-    val rssiInRange =
-      rssi != Int.MAX_VALUE && rssi != CellInfo.UNAVAILABLE &&
-        rssi in MIN_PLAUSIBLE_DBM..MAX_PLAUSIBLE_DBM
-    if (rssiInRange && (rssi - rsrpDbm) <= MAX_LTE_RSSI_OVER_RSRP_DB) {
+    val rssiAvailable = rssi != CellInfo.UNAVAILABLE
+    if (rssiAvailable && (rssi - rsrpDbm) <= MAX_LTE_RSSI_OVER_RSRP_DB) {
       if (earfcn != null) lteRssiCache[earfcn] = CachedRssi(rssi, now)
       return rssi
     }
@@ -611,9 +605,6 @@ class CellularScanner(
     const val TAG = "CellularScanner"
 
     const val STALE_TTL_MS = 60_000L
-
-    const val MIN_PLAUSIBLE_DBM = -150
-    const val MAX_PLAUSIBLE_DBM = 0
 
     const val NR_SSRSRP_TO_RSSI_OFFSET_DB = 30
     const val WCDMA_RSCP_TO_RSSI_OFFSET_DB = 10
