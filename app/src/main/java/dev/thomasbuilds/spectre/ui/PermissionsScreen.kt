@@ -44,7 +44,10 @@ fun PermissionsScreen(onContinue: () -> Unit) {
           .padding(24.dp),
       horizontalAlignment = Alignment.Start
     ) {
-      Row(verticalAlignment = Alignment.CenterVertically) {
+      Row(
+        modifier = Modifier.offset(x = (-32).dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
         Icon(
           imageVector = ImageVector.vectorResource(R.drawable.ic_launcher_foreground),
           contentDescription = null,
@@ -55,22 +58,15 @@ fun PermissionsScreen(onContinue: () -> Unit) {
           "Spectre",
           style = MaterialTheme.typography.displaySmall,
           color = MaterialTheme.colorScheme.onSurface,
-          modifier = Modifier.offset(x = (-14).dp)
+          modifier = Modifier.offset(x = (-18).dp)
         )
       }
-      Spacer(Modifier.height(8.dp))
       Text(
-        "Passive RF environment monitor",
+        "Radio frequency scanner with recon and offensive capabilities",
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant
       )
       Spacer(Modifier.height(36.dp))
-      Text(
-        "Spectre listens for signals broadcast at you and shows your live exposure.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurface
-      )
-      Spacer(Modifier.height(28.dp))
       Text(
         "Permissions",
         style = MaterialTheme.typography.titleLarge,
@@ -100,12 +96,6 @@ fun PermissionsScreen(onContinue: () -> Unit) {
         desc =
           "Required by the Recon screen for host discovery + port scans + mDNS on the LAN " +
             "you're connected to."
-      )
-      Spacer(Modifier.height(32.dp))
-      Text(
-        "No analytics. No Google services.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
       )
       Spacer(Modifier.height(36.dp))
       Button(
