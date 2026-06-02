@@ -160,7 +160,14 @@ fun LazyListScope.detailListSection(
           BluetoothSort.MAC -> filtered.sortedBy { it.mac }
           BluetoothSort.DETECTION -> filtered.sortedBy { it.firstSeenMs }
         }
-      val ordered = pinAtIndex(sorted, expandedKey, anchorIndex) { it.mac }
+      val frozen = holder.btFrozenList
+      val ordered =
+        if (expandedKey != null && frozen != null) {
+          val live = sorted.associateBy { it.mac }
+          frozen.map { live[it.mac] ?: it }
+        } else {
+          sorted
+        }
       val summary = if (filterTokens.isNotEmpty()) "Showing ${filtered.size} of ${visible.size}" else null
       item(key = "detail-header", contentType = "detailHeader") {
         DetailCardHeader(source, state, holder, summary)
@@ -182,7 +189,10 @@ fun LazyListScope.detailListSection(
               BluetoothExpandable(
                 device = b,
                 expanded = expandedKey == b.mac,
-                onToggle = { onToggle(b.mac, idx) },
+                onToggle = {
+                  holder.btFrozenList = if (expandedKey == b.mac) null else ordered
+                  onToggle(b.mac, idx)
+                },
                 resolveBleDevice = resolveBleDevice
               )
             }

@@ -7,6 +7,7 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import dev.thomasbuilds.spectre.model.BluetoothSignal
 
 enum class BluetoothSort(
   val label: String
@@ -53,6 +54,7 @@ class DetailListState(
   var btFilterMode by mutableStateOf(btFilterMode)
   var btSheetOpen by mutableStateOf(false)
   var bleAdvertiseSheetOpen by mutableStateOf(false)
+  var btFrozenList by mutableStateOf<List<BluetoothSignal>?>(null)
 
   var wifiSort by mutableStateOf(wifiSort)
   var wifiBandNames by mutableStateOf(wifiBandNames)
