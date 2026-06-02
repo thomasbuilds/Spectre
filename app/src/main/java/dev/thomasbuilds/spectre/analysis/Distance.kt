@@ -41,10 +41,10 @@ object Distance {
   private const val BLE_PRACTICAL_MAX_M = 200.0
 
   // Timing Advance maps to distance by the network's step size: about 78.07 m per LTE step
-  // and 553 m per GSM step.
+  // and 553.46 m per GSM step.
   fun fromLteTimingAdvance(ta: Int): Double = ta * 78.07
 
-  fun fromGsmTimingAdvance(ta: Int): Double = ta * 553.0
+  fun fromGsmTimingAdvance(ta: Int): Double = ta * 553.46
 
   fun format(meters: Double?): String {
     if (meters == null) return "—"

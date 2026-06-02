@@ -533,7 +533,7 @@ class CellularScanner(
     val exposureDbm = dbm
     val cid = sanitizeCellId(id.cid) ?: 0
     val ta = ss.timingAdvance
-    val distance: Double? = if (ta in 1..63) Distance.fromGsmTimingAdvance(ta) else null
+    val distance: Double? = if (ta in 1..219) Distance.fromGsmTimingAdvance(ta) else null
     val operator = id.operatorAlphaLong?.toString()?.takeIf { it.isNotBlank() }
 
     val details =
