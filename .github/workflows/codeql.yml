@@ -46,6 +46,8 @@ jobs:
       - name: Set up Android SDK
         if: matrix.build-mode == 'manual'
         uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
 
       - name: Set up Gradle
         if: matrix.build-mode == 'manual'
