@@ -16,6 +16,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -382,12 +383,19 @@ class RFMonitorService : Service() {
       startForeground(
         NOTIFICATION_ID,
         buildNotification(),
-        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+        foregroundServiceType()
       )
       true
     } catch (e: Exception) {
       Log.w(TAG, "startForeground denied: ${e.message}")
       false
+    }
+
+  private fun foregroundServiceType(): Int =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+      ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+    } else {
+      ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
     }
 
   private enum class DataTransport { WIFI, CELLULAR, OTHER }
