@@ -28,7 +28,7 @@ android {
 
   defaultConfig {
     applicationId = "dev.thomasbuilds.spectre"
-    minSdk = 33
+    minSdk = 31
     targetSdk = 37
     versionCode = appVersionCode
     versionName = appVersionName

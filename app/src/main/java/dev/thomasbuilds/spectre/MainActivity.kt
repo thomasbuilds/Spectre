@@ -62,7 +62,10 @@ class MainActivity : ComponentActivity() {
       add(Manifest.permission.BLUETOOTH_SCAN)
       add(Manifest.permission.BLUETOOTH_CONNECT)
       add(Manifest.permission.BLUETOOTH_ADVERTISE)
-      add(Manifest.permission.POST_NOTIFICATIONS)
+      // POST_NOTIFICATIONS is a runtime permission only on Android 13+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        add(Manifest.permission.POST_NOTIFICATIONS)
+      }
       // ACCESS_LOCAL_NETWORK is the runtime permission introduced in Android 16 that gates LAN
       // access (including WifiInfo.bssid for the Connected label, mDNS, SSDP, and unicast TCP).
       // Mandatory on Android 17 for apps targeting SDK 37+.
