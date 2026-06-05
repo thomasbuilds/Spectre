@@ -13,6 +13,7 @@ import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothStatusCodes
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.Immutable
@@ -194,6 +195,17 @@ class GattInspector(
           mainHandler.post { s.onRead(uuid, value, status) }
         }
 
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+        override fun onCharacteristicRead(
+          g: BluetoothGatt,
+          characteristic: BluetoothGattCharacteristic,
+          status: Int
+        ) {
+          val uuid = characteristic.uuid.toString()
+          val value = characteristic.value ?: ByteArray(0)
+          mainHandler.post { s.onRead(uuid, value, status) }
+        }
+
         override fun onCharacteristicWrite(
           g: BluetoothGatt,
           characteristic: BluetoothGattCharacteristic,
@@ -289,17 +301,36 @@ class GattInspector(
         BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
       }
     pendingWrite = onResult
-    val code =
-      runCatching { g.writeCharacteristic(characteristic, value, writeType) }
-        .getOrElse {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      val code =
+        runCatching { g.writeCharacteristic(characteristic, value, writeType) }
+          .getOrElse {
+            pendingWrite = null
+            onResult(false, "Write threw: ${it.message}")
+            return
+          }
+      if (code != BluetoothStatusCodes.SUCCESS) {
+        pendingWrite = null
+        onResult(false, "Write rejected (code $code)")
+        return
+      }
+    } else {
+      @Suppress("DEPRECATION")
+      val ok =
+        runCatching {
+          characteristic.writeType = writeType
+          characteristic.value = value
+          g.writeCharacteristic(characteristic)
+        }.getOrElse {
           pendingWrite = null
           onResult(false, "Write threw: ${it.message}")
           return
         }
-    if (code != BluetoothStatusCodes.SUCCESS) {
-      pendingWrite = null
-      onResult(false, "Write rejected (code $code)")
-      return
+      if (!ok) {
+        pendingWrite = null
+        onResult(false, "Write rejected")
+        return
+      }
     }
     mainHandler.postDelayed({
       if (pendingWrite === onResult) {

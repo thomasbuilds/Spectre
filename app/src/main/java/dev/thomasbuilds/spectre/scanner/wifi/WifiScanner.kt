@@ -11,6 +11,7 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
+import android.os.Build
 import androidx.core.content.ContextCompat
 import dev.thomasbuilds.spectre.analysis.Distance
 import dev.thomasbuilds.spectre.model.DetailEntry
@@ -269,7 +270,7 @@ class WifiScanner(
     val generation = scanGeneration.incrementAndGet()
 
     results.forEach { sr ->
-      val key = (sr.BSSID ?: "").ifEmpty { sr.wifiSsid?.toString().orEmpty() }
+      val key = (sr.BSSID ?: "").ifEmpty { sr.ssidString() }
       if (key.isEmpty()) return@forEach
 
       val sanitized = sanitizeRssi(sr.level)
@@ -333,11 +334,7 @@ class WifiScanner(
   ): WifiSignal {
     val freq = sr.frequency
     val band = WifiChannels.bandFor(freq)
-    val rawSsid =
-      sr.wifiSsid
-        ?.toString()
-        ?.trim('"')
-        .orEmpty()
+    val rawSsid = sr.ssidString().trim('"')
     val ssid = if (rawSsid.isBlank()) "Hidden" else rawSsid
     val width = WifiChannels.widthMhz(sr.channelWidth)
     val channel = WifiChannels.channelNumber(freq)
@@ -389,6 +386,14 @@ class WifiScanner(
     if (raw == Int.MIN_VALUE || raw >= 0) return null
     return raw
   }
+
+  @Suppress("DEPRECATION")
+  private fun ScanResult.ssidString(): String =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      wifiSsid?.toString().orEmpty()
+    } else {
+      SSID.orEmpty()
+    }
 
   private companion object {
     const val EMA_ALPHA = 0.3
