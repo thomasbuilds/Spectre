@@ -302,31 +302,23 @@ class RFMonitorService : Service() {
 
   private fun createNotificationChannel() {
     val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-    val quietChannel =
-      NotificationChannel(
-        CHANNEL_ID_QUIET,
-        getString(R.string.notification_channel_name),
-        NotificationManager.IMPORTANCE_MIN
-      ).apply {
-        description = getString(R.string.notification_channel_description)
-        setShowBadge(false)
-        enableLights(false)
-        enableVibration(false)
-        setSound(null, null)
-      }
-    val visibleChannel =
-      NotificationChannel(
-        CHANNEL_ID_VISIBLE,
-        getString(R.string.notification_channel_name),
-        NotificationManager.IMPORTANCE_DEFAULT
-      ).apply {
-        description = getString(R.string.notification_channel_description)
-        setShowBadge(false)
-        enableLights(false)
-        enableVibration(false)
-        setSound(null, null)
-      }
-    nm.createNotificationChannels(listOf(quietChannel, visibleChannel))
+
+    fun channel(
+      id: String,
+      importance: Int
+    ) = NotificationChannel(id, getString(R.string.notification_channel_name), importance).apply {
+      description = getString(R.string.notification_channel_description)
+      setShowBadge(false)
+      enableLights(false)
+      enableVibration(false)
+      setSound(null, null)
+    }
+    nm.createNotificationChannels(
+      listOf(
+        channel(CHANNEL_ID_QUIET, NotificationManager.IMPORTANCE_MIN),
+        channel(CHANNEL_ID_VISIBLE, NotificationManager.IMPORTANCE_DEFAULT)
+      )
+    )
   }
 
   private fun buildNotification(): Notification {

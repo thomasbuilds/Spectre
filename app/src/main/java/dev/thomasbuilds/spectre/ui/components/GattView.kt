@@ -1,9 +1,6 @@
 package dev.thomasbuilds.spectre.ui.components
 
 import android.bluetooth.BluetoothDevice
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -260,15 +257,6 @@ private fun formatGattInspection(
       appendLine()
     }
   }.trimEnd()
-
-private fun copyToClipboard(
-  context: Context,
-  label: String,
-  text: String
-) {
-  val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
-  cm.setPrimaryClip(ClipData.newPlainText(label, text))
-}
 
 @Composable
 private fun GattServicesView(

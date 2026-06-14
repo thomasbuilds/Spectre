@@ -46,7 +46,7 @@ object Distance {
 
   fun fromGsmTimingAdvance(ta: Int): Double = ta * 553.46
 
-  fun format(meters: Double?): String {
+  private fun format(meters: Double?): String {
     if (meters == null) return "—"
     return when {
       meters < 1.0 -> "<1 m"

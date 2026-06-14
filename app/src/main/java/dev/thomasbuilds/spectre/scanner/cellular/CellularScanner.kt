@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.telephony.CellIdentity
 import android.telephony.CellIdentityGsm
 import android.telephony.CellIdentityLte
 import android.telephony.CellIdentityNr
@@ -25,6 +26,7 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import dev.thomasbuilds.spectre.analysis.Distance
+import dev.thomasbuilds.spectre.hasPermission
 import dev.thomasbuilds.spectre.model.CellNetworkType
 import dev.thomasbuilds.spectre.model.CellSignal
 import dev.thomasbuilds.spectre.model.CellularSourceState
@@ -32,6 +34,8 @@ import dev.thomasbuilds.spectre.model.DetailEntry
 import dev.thomasbuilds.spectre.model.DistanceConfidence
 import dev.thomasbuilds.spectre.model.ScannerStatus
 import dev.thomasbuilds.spectre.scanner.ReadinessTracker
+import dev.thomasbuilds.spectre.scanner.daemonExecutor
+import dev.thomasbuilds.spectre.scanner.repeatEvery
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -69,10 +73,7 @@ class CellularScanner(
 
   private var heartbeatJob: Job? = null
 
-  private val callbackExecutor =
-    Executors.newSingleThreadExecutor { r ->
-      Thread(r, "spectre-cell").apply { isDaemon = true }
-    }
+  private val callbackExecutor = daemonExecutor("spectre-cell")
 
   private val connectionLabel: String?
     get() {
@@ -137,19 +138,9 @@ class CellularScanner(
     return runCatching { tm.isDataEnabled }.getOrDefault(true)
   }
 
-  fun hasPermission(): Boolean {
-    val phone =
-      ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.READ_PHONE_STATE
-      ) == PackageManager.PERMISSION_GRANTED
-    val location =
-      ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.ACCESS_FINE_LOCATION
-      ) == PackageManager.PERMISSION_GRANTED
-    return phone && location
-  }
+  fun hasPermission(): Boolean =
+    context.hasPermission(Manifest.permission.READ_PHONE_STATE) &&
+      context.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
 
   fun status(): ScannerStatus {
     if (!hasPermission()) return ScannerStatus.NO_PERMISSION
@@ -173,21 +164,18 @@ class CellularScanner(
     }
     if (heartbeatJob?.isActive != true) {
       heartbeatJob =
-        scope.launch {
-          while (isActive) {
-            delay(CELL_HEARTBEAT_MS)
-            if (status() == ScannerStatus.OK) {
-              // Recover if the first sync registered no subscriptions (e.g. the SIM was not yet
-              // readable right after the permission grant). start() runs only once, so without this
-              // the card stays at zero until the service is recreated.
-              if (subMonitors.isEmpty()) {
-                syncSubscriptions()
-                registerSubscriptionChangeListener()
-              }
-              requestCellInfoRefresh()
+        scope.repeatEvery(CELL_HEARTBEAT_MS) {
+          if (status() == ScannerStatus.OK) {
+            // Recover if the first sync registered no subscriptions (e.g. the SIM was not yet
+            // readable right after the permission grant). start() runs only once, so without this
+            // the card stays at zero until the service is recreated.
+            if (subMonitors.isEmpty()) {
+              syncSubscriptions()
+              registerSubscriptionChangeListener()
             }
-            publishNow()
+            requestCellInfoRefresh()
           }
+          publishNow()
         }
     }
     if (!initialKickFired) {
@@ -408,6 +396,8 @@ class CellularScanner(
     return raw
   }
 
+  private fun operatorName(id: CellIdentity?): String? = id?.operatorAlphaLong?.toString()?.takeIf { it.isNotBlank() }
+
   private fun parseNr(info: CellInfoNr): CellSignal? {
     val ss = info.cellSignalStrength as? CellSignalStrengthNr
     val id = info.cellIdentity as? CellIdentityNr
@@ -415,7 +405,7 @@ class CellularScanner(
     val dbm = sanitizeDbm(rawDbm) ?: return null
     val exposureDbm = dbm + NR_SSRSRP_TO_RSSI_OFFSET_DB
     val nci = sanitizeNci(id?.nci) ?: 0L
-    val operator = id?.operatorAlphaLong?.toString()?.takeIf { it.isNotBlank() }
+    val operator = operatorName(id)
     val details =
       buildList {
         add(DetailEntry("Status", if (info.isRegistered) "Serving" else "Neighbor"))
@@ -460,7 +450,7 @@ class CellularScanner(
     val ci = sanitizeCellId(id.ci) ?: 0
     val ta = ss.timingAdvance
     val distance: Double? = if (ta in 1..1282) Distance.fromLteTimingAdvance(ta) else null
-    val operator = id.operatorAlphaLong?.toString()?.takeIf { it.isNotBlank() }
+    val operator = operatorName(id)
 
     val details =
       buildList {
@@ -500,7 +490,7 @@ class CellularScanner(
     val ecNo = ss.ecNo.takeIf { it != CellInfo.UNAVAILABLE }
     val exposureDbm = if (ecNo != null) dbm - ecNo else dbm + WCDMA_RSCP_TO_RSSI_OFFSET_DB
     val cid = sanitizeCellId(id.cid) ?: 0
-    val operator = id.operatorAlphaLong?.toString()?.takeIf { it.isNotBlank() }
+    val operator = operatorName(id)
     val details =
       buildList {
         add(DetailEntry("Status", if (info.isRegistered) "Serving" else "Neighbor"))
@@ -534,7 +524,7 @@ class CellularScanner(
     val cid = sanitizeCellId(id.cid) ?: 0
     val ta = ss.timingAdvance
     val distance: Double? = if (ta in 1..219) Distance.fromGsmTimingAdvance(ta) else null
-    val operator = id.operatorAlphaLong?.toString()?.takeIf { it.isNotBlank() }
+    val operator = operatorName(id)
 
     val details =
       buildList {

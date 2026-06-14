@@ -7,9 +7,8 @@ import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
 import android.content.Context
-import android.content.pm.PackageManager
 import android.util.Log
-import androidx.core.content.ContextCompat
+import dev.thomasbuilds.spectre.hasPermission
 import java.nio.ByteBuffer
 import java.util.UUID
 
@@ -23,11 +22,7 @@ class BleAdvertiser(
   private var advertiser: android.bluetooth.le.BluetoothLeAdvertiser? = null
   private var callback: AdvertiseCallback? = null
 
-  fun hasPermission(): Boolean =
-    ContextCompat.checkSelfPermission(
-      context,
-      Manifest.permission.BLUETOOTH_ADVERTISE
-    ) == PackageManager.PERMISSION_GRANTED
+  fun hasPermission(): Boolean = context.hasPermission(Manifest.permission.BLUETOOTH_ADVERTISE)
 
   fun isSupported(): Boolean = adapter?.isMultipleAdvertisementSupported == true
 

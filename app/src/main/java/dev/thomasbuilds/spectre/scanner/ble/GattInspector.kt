@@ -12,12 +12,11 @@ import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothStatusCodes
 import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.Immutable
-import androidx.core.content.ContextCompat
+import dev.thomasbuilds.spectre.hasPermission
 
 @Immutable
 data class GattCharacteristicInfo(
@@ -80,11 +79,7 @@ class GattInspector(
 
   @Volatile private var pendingWrite: ((Boolean, String) -> Unit)? = null
 
-  fun hasPermission(): Boolean =
-    ContextCompat.checkSelfPermission(
-      context,
-      Manifest.permission.BLUETOOTH_CONNECT
-    ) == PackageManager.PERMISSION_GRANTED
+  fun hasPermission(): Boolean = context.hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
 
   @SuppressLint("MissingPermission")
   fun inspect(

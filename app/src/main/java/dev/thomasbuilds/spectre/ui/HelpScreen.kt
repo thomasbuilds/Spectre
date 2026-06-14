@@ -36,24 +36,7 @@ fun HelpScreen(onBack: () -> Unit) {
     color = MaterialTheme.colorScheme.background
   ) {
     Column(modifier = Modifier.fillMaxSize().padding(insets)) {
-      Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-      ) {
-        IconButton(onClick = onBack) {
-          Icon(
-            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-            contentDescription = "Back",
-            tint = MaterialTheme.colorScheme.onSurface
-          )
-        }
-        Text(
-          "Help & Glossary",
-          style = MaterialTheme.typography.titleLarge,
-          fontWeight = FontWeight.Medium,
-          color = MaterialTheme.colorScheme.onSurface
-        )
-      }
+      BackTopBar(title = "Help & Glossary", onBack = onBack)
 
       Column(
         modifier =

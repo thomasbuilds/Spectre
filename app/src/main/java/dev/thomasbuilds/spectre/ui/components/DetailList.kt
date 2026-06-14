@@ -532,41 +532,40 @@ internal fun Badge(text: String) {
 }
 
 @Composable
-private fun ConnectedChip(text: String = "Connected") {
-  Box(
-    modifier =
-      Modifier
-        .background(
-          LIVE_GREEN.copy(alpha = 0.15f),
-          RoundedCornerShape(percent = 50)
-        ).padding(horizontal = 10.dp, vertical = 2.dp)
-  ) {
+private fun Pill(
+  text: String,
+  color: Color,
+  modifier: Modifier
+) {
+  Box(modifier = modifier.padding(horizontal = 10.dp, vertical = 2.dp)) {
     Text(
       text,
       style = MaterialTheme.typography.labelMedium,
-      color = LIVE_GREEN
+      color = color
     )
   }
 }
 
 @Composable
-internal fun PairedChip(text: String = "Paired") {
-  Box(
+private fun ConnectedChip() =
+  Pill(
+    text = "Connected",
+    color = LIVE_GREEN,
+    modifier = Modifier.background(LIVE_GREEN.copy(alpha = 0.15f), RoundedCornerShape(percent = 50))
+  )
+
+@Composable
+internal fun PairedChip() =
+  Pill(
+    text = "Paired",
+    color = MaterialTheme.colorScheme.primary,
     modifier =
-      Modifier
-        .border(
-          width = 1.dp,
-          color = MaterialTheme.colorScheme.primary,
-          shape = RoundedCornerShape(percent = 50)
-        ).padding(horizontal = 10.dp, vertical = 2.dp)
-  ) {
-    Text(
-      text,
-      style = MaterialTheme.typography.labelMedium,
-      color = MaterialTheme.colorScheme.primary
-    )
-  }
-}
+      Modifier.border(
+        width = 1.dp,
+        color = MaterialTheme.colorScheme.primary,
+        shape = RoundedCornerShape(percent = 50)
+      )
+  )
 
 @Composable
 private fun CellHeader(c: CellSignal) {
@@ -640,22 +639,12 @@ private fun WifiHeader(w: WifiSignal) {
 }
 
 @Composable
-internal fun ConnectableTag() {
-  Box(
-    modifier =
-      Modifier
-        .background(
-          MaterialTheme.colorScheme.surfaceVariant,
-          RoundedCornerShape(percent = 50)
-        ).padding(horizontal = 10.dp, vertical = 2.dp)
-  ) {
-    Text(
-      "Connectable",
-      style = MaterialTheme.typography.labelMedium,
-      color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-  }
-}
+internal fun ConnectableTag() =
+  Pill(
+    text = "Connectable",
+    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(percent = 50))
+  )
 
 @Composable
 private fun GnssHeader(g: GnssSignal) {

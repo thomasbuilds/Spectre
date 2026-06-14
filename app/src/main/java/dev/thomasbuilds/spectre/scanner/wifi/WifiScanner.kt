@@ -14,12 +14,15 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import androidx.core.content.ContextCompat
 import dev.thomasbuilds.spectre.analysis.Distance
+import dev.thomasbuilds.spectre.hasPermission
 import dev.thomasbuilds.spectre.model.DetailEntry
 import dev.thomasbuilds.spectre.model.DistanceConfidence
 import dev.thomasbuilds.spectre.model.ScannerStatus
 import dev.thomasbuilds.spectre.model.WifiSignal
 import dev.thomasbuilds.spectre.model.WifiSourceState
 import dev.thomasbuilds.spectre.scanner.ReadinessTracker
+import dev.thomasbuilds.spectre.scanner.daemonExecutor
+import dev.thomasbuilds.spectre.scanner.repeatEvery
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -66,10 +69,7 @@ class WifiScanner(
   private var scanLoopJob: Job? = null
   private var heartbeatJob: Job? = null
 
-  private val callbackExecutor =
-    Executors.newSingleThreadExecutor { r ->
-      Thread(r, "spectre-wifi").apply { isDaemon = true }
-    }
+  private val callbackExecutor = daemonExecutor("spectre-wifi")
 
   private val scanCallback =
     object : WifiManager.ScanResultsCallback() {
@@ -104,11 +104,7 @@ class WifiScanner(
   private var registered = false
   private var networkCallbackRegistered = false
 
-  fun hasPermission(): Boolean =
-    ContextCompat.checkSelfPermission(
-      context,
-      Manifest.permission.ACCESS_FINE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED
+  fun hasPermission(): Boolean = context.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
 
   fun status(): ScannerStatus {
     if (!hasPermission()) return ScannerStatus.NO_PERMISSION
@@ -150,13 +146,7 @@ class WifiScanner(
         }
     }
     if (heartbeatJob?.isActive != true) {
-      heartbeatJob =
-        scope.launch {
-          while (isActive) {
-            delay(WIFI_HEARTBEAT_MS)
-            publishNow()
-          }
-        }
+      heartbeatJob = scope.repeatEvery(WIFI_HEARTBEAT_MS) { publishNow() }
     }
     publishNow()
   }

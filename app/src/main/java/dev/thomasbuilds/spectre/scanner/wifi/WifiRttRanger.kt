@@ -10,9 +10,9 @@ import android.net.wifi.rtt.RangingResult
 import android.net.wifi.rtt.RangingResultCallback
 import android.net.wifi.rtt.WifiRttManager
 import android.util.Log
-import androidx.core.content.ContextCompat
+import dev.thomasbuilds.spectre.hasPermission
+import dev.thomasbuilds.spectre.scanner.daemonExecutor
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 class WifiRttRanger(
@@ -27,21 +27,14 @@ class WifiRttRanger(
     context.getSystemService(Context.WIFI_RTT_RANGING_SERVICE) as? WifiRttManager
 
   private val cache = ConcurrentHashMap<String, FtmReading>()
-  private val executor =
-    Executors.newSingleThreadExecutor { r ->
-      Thread(r, "wifi-rtt").apply { isDaemon = true }
-    }
+  private val executor = daemonExecutor("wifi-rtt")
   private val inFlight = AtomicBoolean(false)
 
   fun isSupported(): Boolean =
     rttMgr != null &&
       context.packageManager.hasSystemFeature(PackageManager.FEATURE_WIFI_RTT)
 
-  private fun hasPermission(): Boolean =
-    ContextCompat.checkSelfPermission(
-      context,
-      Manifest.permission.ACCESS_FINE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED
+  private fun hasPermission(): Boolean = context.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
 
   fun fresh(
     bssid: String?,

@@ -111,9 +111,7 @@ object CelestialGeometry {
 
       Constellation.BEIDOU -> {
         when (svid) {
-          in 1..5 -> 35_786_000.0
-          in 6..10 -> 35_786_000.0
-          in 38..46 -> 35_786_000.0
+          in 1..10, in 38..46 -> 35_786_000.0
           else -> 21_500_000.0
         }
       }

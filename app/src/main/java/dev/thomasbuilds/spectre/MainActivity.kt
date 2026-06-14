@@ -165,9 +165,5 @@ class MainActivity : ComponentActivity() {
     super.onDestroy()
   }
 
-  private fun hasEssentialPermissions(): Boolean =
-    ContextCompat.checkSelfPermission(
-      this,
-      Manifest.permission.ACCESS_FINE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED
+  private fun hasEssentialPermissions(): Boolean = hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
 }

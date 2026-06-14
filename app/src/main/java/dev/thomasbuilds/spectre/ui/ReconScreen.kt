@@ -95,7 +95,9 @@ fun ReconScreen(onBack: () -> Unit) {
   val insets = WindowInsets.safeDrawing.asPaddingValues()
   Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
     Column(modifier = Modifier.fillMaxSize().padding(insets)) {
-      TopBar(onBack = onBack)
+      BackTopBar(title = "Recon", onBack = onBack) {
+        InfoButton(title = "Recon screen", body = HelpEntries.ReconScreen)
+      }
       Column(
         modifier =
           Modifier
@@ -226,30 +228,6 @@ fun ReconScreen(onBack: () -> Unit) {
         Spacer(Modifier.height(24.dp))
       }
     }
-  }
-}
-
-@Composable
-private fun TopBar(onBack: () -> Unit) {
-  Row(
-    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    IconButton(onClick = onBack) {
-      Icon(
-        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-        contentDescription = "Back",
-        tint = MaterialTheme.colorScheme.onSurface
-      )
-    }
-    Text(
-      "Recon",
-      style = MaterialTheme.typography.titleLarge,
-      fontWeight = FontWeight.Medium,
-      color = MaterialTheme.colorScheme.onSurface,
-      modifier = Modifier.weight(1f)
-    )
-    InfoButton(title = "Recon screen", body = dev.thomasbuilds.spectre.ui.HelpEntries.ReconScreen)
   }
 }
 

@@ -17,12 +17,15 @@ import androidx.core.content.ContextCompat
 import androidx.core.util.isNotEmpty
 import androidx.core.util.size
 import dev.thomasbuilds.spectre.analysis.Distance
+import dev.thomasbuilds.spectre.hasPermission
 import dev.thomasbuilds.spectre.model.BluetoothSignal
 import dev.thomasbuilds.spectre.model.BluetoothSourceState
 import dev.thomasbuilds.spectre.model.DetailEntry
 import dev.thomasbuilds.spectre.model.DistanceConfidence
 import dev.thomasbuilds.spectre.model.ScannerStatus
 import dev.thomasbuilds.spectre.scanner.ReadinessTracker
+import dev.thomasbuilds.spectre.scanner.daemonExecutor
+import dev.thomasbuilds.spectre.scanner.repeatEvery
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -104,10 +107,7 @@ class BluetoothScanner(
 
   private val readiness = ReadinessTracker(BT_WARMUP_MS, BT_STALENESS_MS)
 
-  private val ingestExecutor =
-    Executors.newSingleThreadExecutor { r ->
-      Thread(r, "spectre-bt").apply { isDaemon = true }
-    }
+  private val ingestExecutor = daemonExecutor("spectre-bt")
 
   private val callback =
     object : ScanCallback() {
@@ -187,11 +187,7 @@ class BluetoothScanner(
   private fun resolveNameViaIpc(device: BluetoothDevice): String {
     val deviceName =
       runCatching {
-        if (ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.BLUETOOTH_CONNECT
-          ) == PackageManager.PERMISSION_GRANTED
-        ) {
+        if (context.hasPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
           @SuppressLint("MissingPermission")
           device.name
         } else {
@@ -307,11 +303,7 @@ class BluetoothScanner(
     )
   }
 
-  fun hasPermission(): Boolean =
-    ContextCompat.checkSelfPermission(
-      context,
-      Manifest.permission.BLUETOOTH_SCAN
-    ) == PackageManager.PERMISSION_GRANTED
+  fun hasPermission(): Boolean = context.hasPermission(Manifest.permission.BLUETOOTH_SCAN)
 
   fun status(): ScannerStatus {
     if (!hasPermission()) return ScannerStatus.NO_PERMISSION
@@ -331,20 +323,12 @@ class BluetoothScanner(
     }
     if (heartbeatJob?.isActive != true) {
       heartbeatJob =
-        scope.launch(Dispatchers.Default.limitedParallelism(1)) {
-          while (isActive) {
-            delay(BT_HEARTBEAT_MS)
-            publishNow()
-          }
-        }
+        scope.repeatEvery(BT_HEARTBEAT_MS, Dispatchers.Default.limitedParallelism(1)) { publishNow() }
     }
     if (watchdogJob?.isActive != true) {
       watchdogJob =
-        scope.launch(Dispatchers.Default.limitedParallelism(1)) {
-          while (isActive) {
-            delay(BT_WATCHDOG_MS)
-            if (status() == ScannerStatus.OK) startScan()
-          }
+        scope.repeatEvery(BT_WATCHDOG_MS, Dispatchers.Default.limitedParallelism(1)) {
+          if (status() == ScannerStatus.OK) startScan()
         }
     }
     publishNow()

@@ -68,7 +68,7 @@ fun SettingsScreen(
           .fillMaxSize()
           .padding(insets)
     ) {
-      TopBar(onBack = onBack)
+      BackTopBar(title = "Settings", onBack = onBack)
       Column(
         modifier =
           Modifier
@@ -149,31 +149,6 @@ fun SettingsScreen(
         Spacer(Modifier.height(24.dp))
       }
     }
-  }
-}
-
-@Composable
-private fun TopBar(onBack: () -> Unit) {
-  Row(
-    modifier =
-      Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 4.dp, vertical = 8.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    IconButton(onClick = onBack) {
-      Icon(
-        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-        contentDescription = "Back",
-        tint = MaterialTheme.colorScheme.onSurface
-      )
-    }
-    Text(
-      "Settings",
-      style = MaterialTheme.typography.titleLarge,
-      fontWeight = FontWeight.Medium,
-      color = MaterialTheme.colorScheme.onSurface
-    )
   }
 }
 

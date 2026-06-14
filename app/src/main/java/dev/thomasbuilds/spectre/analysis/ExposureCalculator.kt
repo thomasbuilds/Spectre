@@ -44,23 +44,13 @@ object ExposureCalculator {
     return mwToDbm(totalMw)
   }
 
-  fun cellularDbm(cells: List<CellSignal>): Double? {
-    if (cells.isEmpty()) return null
-    val mw = cellularPowerMw(cells)
-    return if (mw <= MIN_DETECTABLE_MW) null else mwToDbm(mw)
-  }
+  private fun dbmOrNull(mw: Double): Double? = if (mw <= MIN_DETECTABLE_MW) null else mwToDbm(mw)
 
-  fun wifiDbm(aps: List<WifiSignal>): Double? {
-    if (aps.isEmpty()) return null
-    val mw = wifiPowerMw(aps)
-    return if (mw <= MIN_DETECTABLE_MW) null else mwToDbm(mw)
-  }
+  fun cellularDbm(cells: List<CellSignal>): Double? = dbmOrNull(cellularPowerMw(cells))
 
-  fun bluetoothDbm(devices: List<BluetoothSignal>): Double? {
-    if (devices.isEmpty()) return null
-    val mw = bluetoothPowerMw(devices)
-    return if (mw <= MIN_DETECTABLE_MW) null else mwToDbm(mw)
-  }
+  fun wifiDbm(aps: List<WifiSignal>): Double? = dbmOrNull(wifiPowerMw(aps))
+
+  fun bluetoothDbm(devices: List<BluetoothSignal>): Double? = dbmOrNull(bluetoothPowerMw(devices))
 
   const val LOWER_DBM = -120.0
   const val UPPER_DBM = 0.0

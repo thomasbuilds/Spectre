@@ -11,12 +11,15 @@ import android.location.LocationRequest
 import android.util.Log
 import androidx.core.content.ContextCompat
 import dev.thomasbuilds.spectre.analysis.CelestialGeometry
+import dev.thomasbuilds.spectre.hasPermission
 import dev.thomasbuilds.spectre.model.Constellation
 import dev.thomasbuilds.spectre.model.DetailEntry
 import dev.thomasbuilds.spectre.model.GnssSignal
 import dev.thomasbuilds.spectre.model.GnssSourceState
 import dev.thomasbuilds.spectre.model.ScannerStatus
 import dev.thomasbuilds.spectre.scanner.ReadinessTracker
+import dev.thomasbuilds.spectre.scanner.daemonExecutor
+import dev.thomasbuilds.spectre.scanner.repeatEvery
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -46,10 +49,7 @@ class GnssScanner(
   private val readiness = ReadinessTracker(GNSS_WARMUP_MS, GNSS_STALENESS_MS)
   private var heartbeatJob: Job? = null
 
-  private val callbackExecutor =
-    Executors.newSingleThreadExecutor { r ->
-      Thread(r, "spectre-gnss").apply { isDaemon = true }
-    }
+  private val callbackExecutor = daemonExecutor("spectre-gnss")
 
   private data class RawSatelliteEntry(
     val constellation: Constellation,
@@ -163,11 +163,7 @@ class GnssScanner(
   @Volatile private var lastLocation: android.location.Location? = null
   private val locationListener = LocationListener { loc -> lastLocation = loc }
 
-  fun hasPermission(): Boolean =
-    ContextCompat.checkSelfPermission(
-      context,
-      Manifest.permission.ACCESS_FINE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED
+  fun hasPermission(): Boolean = context.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
 
   fun status(): ScannerStatus {
     if (!hasPermission()) return ScannerStatus.NO_PERMISSION
@@ -202,13 +198,7 @@ class GnssScanner(
       }
     }
     if (heartbeatJob?.isActive != true) {
-      heartbeatJob =
-        scope.launch {
-          while (isActive) {
-            delay(GNSS_HEARTBEAT_MS)
-            publishNow()
-          }
-        }
+      heartbeatJob = scope.repeatEvery(GNSS_HEARTBEAT_MS) { publishNow() }
     }
     publishNow()
   }

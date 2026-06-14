@@ -1,7 +1,5 @@
 package dev.thomasbuilds.spectre.ui.components
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
@@ -161,13 +159,4 @@ private fun openUrl(
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     )
   }
-}
-
-private fun copyToClipboard(
-  context: Context,
-  label: String,
-  text: String
-) {
-  val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
-  cm.setPrimaryClip(ClipData.newPlainText(label, text))
 }
