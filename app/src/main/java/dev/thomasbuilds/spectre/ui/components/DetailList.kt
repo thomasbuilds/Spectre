@@ -43,7 +43,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.thomasbuilds.spectre.analysis.Distance
-import dev.thomasbuilds.spectre.model.BluetoothSignal
 import dev.thomasbuilds.spectre.model.CellSignal
 import dev.thomasbuilds.spectre.model.DetailEntry
 import dev.thomasbuilds.spectre.model.DistanceConfidence

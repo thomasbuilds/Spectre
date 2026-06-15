@@ -3,7 +3,6 @@ package dev.thomasbuilds.spectre.scanner.wifi
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.Network
@@ -12,7 +11,6 @@ import android.net.NetworkRequest
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Build
-import androidx.core.content.ContextCompat
 import dev.thomasbuilds.spectre.analysis.Distance
 import dev.thomasbuilds.spectre.hasPermission
 import dev.thomasbuilds.spectre.model.DetailEntry
@@ -32,7 +30,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
 class WifiScanner(

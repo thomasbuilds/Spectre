@@ -3,7 +3,6 @@ package dev.thomasbuilds.spectre.scanner.cellular
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.telephony.CellIdentity
 import android.telephony.CellIdentityGsm
@@ -24,7 +23,6 @@ import android.telephony.TelephonyCallback
 import android.telephony.TelephonyDisplayInfo
 import android.telephony.TelephonyManager
 import android.util.Log
-import androidx.core.content.ContextCompat
 import dev.thomasbuilds.spectre.analysis.Distance
 import dev.thomasbuilds.spectre.hasPermission
 import dev.thomasbuilds.spectre.model.CellNetworkType
@@ -38,14 +36,10 @@ import dev.thomasbuilds.spectre.scanner.daemonExecutor
 import dev.thomasbuilds.spectre.scanner.repeatEvery
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
 import kotlin.math.log10
 import kotlin.math.roundToInt
 
