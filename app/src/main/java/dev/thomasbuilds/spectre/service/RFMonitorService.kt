@@ -30,6 +30,7 @@ import dev.thomasbuilds.spectre.analysis.ExposureCalculator
 import dev.thomasbuilds.spectre.model.ScanState
 import dev.thomasbuilds.spectre.scanner.OuiLookup
 import dev.thomasbuilds.spectre.scanner.ble.BluetoothScanner
+import dev.thomasbuilds.spectre.scanner.ble.CompanyIdLookup
 import dev.thomasbuilds.spectre.scanner.cellular.CellularScanner
 import dev.thomasbuilds.spectre.scanner.gnss.GnssScanner
 import dev.thomasbuilds.spectre.scanner.wifi.WifiScanner
@@ -94,9 +95,10 @@ class RFMonitorService : Service() {
   override fun onCreate() {
     super.onCreate()
     val oui = OuiLookup(this)
+    val companyIds = CompanyIdLookup(this)
     cellularScanner = CellularScanner(this)
     wifiScanner = WifiScanner(this, oui)
-    bluetoothScanner = BluetoothScanner(this, oui)
+    bluetoothScanner = BluetoothScanner(this, oui, companyIds)
     gnssScanner = GnssScanner(this)
 
     createNotificationChannel()

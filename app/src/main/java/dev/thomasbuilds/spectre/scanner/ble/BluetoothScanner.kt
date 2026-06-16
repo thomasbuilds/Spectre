@@ -41,7 +41,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 class BluetoothScanner(
   private val context: Context,
-  private val oui: OuiLookup
+  private val oui: OuiLookup,
+  private val companies: CompanyIdLookup
 ) {
   private val manager: BluetoothManager? =
     context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
@@ -261,12 +262,12 @@ class BluetoothScanner(
         }
         result.scanRecord?.manufacturerSpecificData?.let { msd ->
           if (msd.isNotEmpty()) {
-            val companies =
+            val manufacturers =
               (0..<msd.size).joinToString { idx ->
                 val cid = msd.keyAt(idx)
-                companyName(cid) ?: "0x%04X".format(cid)
+                companies.name(cid) ?: "0x%04X".format(cid)
               }
-            add(DetailEntry("Manufacturer", companies))
+            add(DetailEntry("Manufacturer", manufacturers))
 
             val appleData = msd.get(0x004C)
             if (appleData != null && appleData.isNotEmpty()) {
@@ -298,7 +299,7 @@ class BluetoothScanner(
       distanceConfidence = confidence,
       isBonded = isBonded,
       details = details,
-      advertisementHex = result.scanRecord?.let { advertisementHexBlock(it) },
+      advertisementHex = result.scanRecord?.let { advertisementHexBlock(it, companies) },
       firstSeenMs = state.firstSeenMs,
       isConnectable = result.isConnectable,
       isStale = isStale

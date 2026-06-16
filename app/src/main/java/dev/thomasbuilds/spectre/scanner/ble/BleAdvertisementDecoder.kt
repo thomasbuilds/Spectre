@@ -3,14 +3,17 @@ package dev.thomasbuilds.spectre.scanner.ble
 import android.bluetooth.le.ScanRecord
 import androidx.core.util.size
 
-internal fun advertisementHexBlock(scanRecord: ScanRecord): String? {
+internal fun advertisementHexBlock(
+  scanRecord: ScanRecord,
+  companies: CompanyIdLookup
+): String? {
   val lines = mutableListOf<String>()
   scanRecord.manufacturerSpecificData?.let { msd ->
     for (i in 0..<msd.size) {
       val cid = msd.keyAt(i)
       val bytes = msd.valueAt(i) ?: continue
       if (bytes.isEmpty()) continue
-      val name = companyName(cid) ?: "Unknown"
+      val name = companies.name(cid) ?: "Unknown"
       lines += "Manufacturer 0x%04X (%s): %s".format(cid, name, bytesToHex(bytes))
     }
   }
@@ -73,19 +76,4 @@ internal fun msAdvLabel(data: ByteArray): String =
     0x01 -> "Swift Pair (peripheral pairing)"
     0x03 -> "Continuum / Phone Link"
     else -> "Microsoft 0x%02X".format(data[0].toInt() and 0xFF)
-  }
-
-internal fun companyName(id: Int): String? =
-  when (id) {
-    0x0006 -> "Microsoft"
-    0x004C -> "Apple"
-    0x0075 -> "Samsung"
-    0x00E0 -> "Google"
-    0x0157 -> "Anhui Huami"
-    0x0171 -> "Amazon"
-    0x0499 -> "Ruuvi"
-    0x0059 -> "Nordic Semi"
-    0x0087 -> "Garmin"
-    0x015D -> "Estimote"
-    else -> null
   }
