@@ -21,6 +21,7 @@ import dev.thomasbuilds.spectre.model.BluetoothSourceState
 import dev.thomasbuilds.spectre.model.DetailEntry
 import dev.thomasbuilds.spectre.model.DistanceConfidence
 import dev.thomasbuilds.spectre.model.ScannerStatus
+import dev.thomasbuilds.spectre.scanner.OuiLookup
 import dev.thomasbuilds.spectre.scanner.ReadinessTracker
 import dev.thomasbuilds.spectre.scanner.daemonExecutor
 import dev.thomasbuilds.spectre.scanner.repeatEvery
@@ -39,7 +40,8 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
 class BluetoothScanner(
-  private val context: Context
+  private val context: Context,
+  private val oui: OuiLookup
 ) {
   private val manager: BluetoothManager? =
     context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
@@ -233,6 +235,9 @@ class BluetoothScanner(
       buildList {
         add(DetailEntry("Name", name))
         add(DetailEntry("MAC", mac))
+        if (!isRandomAddress(result.device)) {
+          oui.vendor(mac)?.let { add(DetailEntry("Vendor", it)) }
+        }
         if (advertisedTxPower != null) {
           add(DetailEntry("Adv TX power", "$advertisedTxPower dBm"))
         }
@@ -474,6 +479,13 @@ class BluetoothScanner(
       BluetoothDevice.ADDRESS_TYPE_ANONYMOUS -> "Anonymous"
       else -> "Unknown"
     }
+  }
+
+  // A random BLE address has no real OUI, so skip those we can detect (API 35+) to avoid a coincidental mislabel.
+  @SuppressLint("MissingPermission")
+  private fun isRandomAddress(device: BluetoothDevice?): Boolean {
+    if (device == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return false
+    return runCatching { device.addressType == BluetoothDevice.ADDRESS_TYPE_RANDOM }.getOrDefault(false)
   }
 
   private fun phyLabel(phy: Int): String =

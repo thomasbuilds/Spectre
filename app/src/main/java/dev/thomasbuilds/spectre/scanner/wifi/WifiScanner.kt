@@ -18,6 +18,7 @@ import dev.thomasbuilds.spectre.model.DistanceConfidence
 import dev.thomasbuilds.spectre.model.ScannerStatus
 import dev.thomasbuilds.spectre.model.WifiSignal
 import dev.thomasbuilds.spectre.model.WifiSourceState
+import dev.thomasbuilds.spectre.scanner.OuiLookup
 import dev.thomasbuilds.spectre.scanner.ReadinessTracker
 import dev.thomasbuilds.spectre.scanner.daemonExecutor
 import dev.thomasbuilds.spectre.scanner.repeatEvery
@@ -33,7 +34,8 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 class WifiScanner(
-  private val context: Context
+  private val context: Context,
+  private val oui: OuiLookup
 ) {
   private val wifi: WifiManager? =
     context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
@@ -337,6 +339,7 @@ class WifiScanner(
     val details =
       buildList {
         add(DetailEntry("BSSID", sr.BSSID ?: "—"))
+        oui.vendor(sr.BSSID)?.let { add(DetailEntry("Vendor", it)) }
         add(DetailEntry("Signal", "$sanitizedRssi dBm"))
         add(DetailEntry("Frequency", "$freq MHz"))
         if (channel != null) add(DetailEntry("Channel", channel.toString()))
