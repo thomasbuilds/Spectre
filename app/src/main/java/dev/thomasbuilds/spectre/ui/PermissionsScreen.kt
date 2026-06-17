@@ -93,7 +93,7 @@ fun PermissionsScreen(onContinue: () -> Unit) {
       Row(
         title = "Local network (internet)",
         desc =
-          "Required by the Recon screen for host discovery + port scans + mDNS on the LAN you're connected to."
+          "Discover hosts, probe ports, and browse mDNS services on the LAN you're connected to."
       )
       Spacer(Modifier.height(36.dp))
       Button(

@@ -90,8 +90,8 @@ fun ReconScreen(onBack: () -> Unit) {
   val insets = WindowInsets.safeDrawing.asPaddingValues()
   Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
     Column(modifier = Modifier.fillMaxSize().padding(insets)) {
-      BackTopBar(title = "Recon", onBack = onBack) {
-        InfoButton(title = "Recon screen", body = HelpEntries.ReconScreen)
+      BackTopBar(title = "Local network scan", onBack = onBack) {
+        InfoButton(title = "Local network scan", body = HelpEntries.ReconScreen)
       }
       Column(
         modifier =

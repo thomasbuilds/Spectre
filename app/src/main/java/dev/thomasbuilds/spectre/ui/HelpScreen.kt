@@ -237,7 +237,7 @@ private val GLOSSARY =
       )
     ),
     GlossarySection(
-      "Recon",
+      "Local network scan",
       listOf(
         e("Local IP / Gateway", "Your phone's own address on the network, and the router's address."),
         e("CIDR", "The subnet size, such as /24, which sets how many addresses get scanned."),
