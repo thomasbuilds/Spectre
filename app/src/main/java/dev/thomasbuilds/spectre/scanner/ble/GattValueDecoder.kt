@@ -145,8 +145,7 @@ object GattValueDecoder {
     val maxI = bytes.uint16leAt(2) * 1.25
     val latency = bytes.uint16leAt(4)
     val timeout = bytes.uint16leAt(6) * 10
-    return "interval ${"%.1f".format(minI)}–${"%.1f".format(maxI)} ms, " +
-      "latency $latency, timeout $timeout ms"
+    return "interval ${"%.1f".format(minI)}–${"%.1f".format(maxI)} ms, latency $latency, timeout $timeout ms"
   }
 
   private fun ByteArray.uint16leAt(offset: Int): Int = (this[offset].toInt() and 0xff) or ((this[offset + 1].toInt() and 0xff) shl 8)

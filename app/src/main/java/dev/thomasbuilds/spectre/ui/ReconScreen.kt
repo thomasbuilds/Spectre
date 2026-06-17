@@ -211,11 +211,7 @@ fun ReconScreen(onBack: () -> Unit) {
         if (!scanning && hosts.isEmpty() && mdns.isEmpty()) {
           Spacer(Modifier.height(24.dp))
           Text(
-            "Tap Scan to enumerate hosts on the LAN you're connected to.\n\n" +
-              "Host discovery uses TCP connect probes on common ports. mDNS " +
-              "uses Android's NsdManager to list services advertising on the " +
-              "network (AirPlay, Chromecast, IPP printers, Plex, etc.). " +
-              "Scanning is limited to your current LAN.",
+            "Tap Scan to enumerate hosts on the LAN you're connected to.\n\nHost discovery uses TCP connect probes on common ports. mDNS uses Android's NsdManager to list services advertising on the network (AirPlay, Chromecast, IPP printers, Plex, etc.). Scanning is limited to your current LAN.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
           )
@@ -241,11 +237,7 @@ private fun LocalBlockedCard() {
       )
       Spacer(Modifier.height(6.dp))
       Text(
-        "Connections to the LAN were rejected by the system (EPERM). This usually means " +
-          "a VPN with \"Block connections without VPN\" (lockdown) is on, or a firewall " +
-          "app is blocking Spectre. Allow local network traffic in your VPN, or turn it " +
-          "off, then scan again. mDNS still works because it goes through the system " +
-          "service, which is why services can appear with no open ports.",
+        "Connections to the LAN were rejected by the system (EPERM). This usually means a VPN with \"Block connections without VPN\" (lockdown) is on, or a firewall app is blocking Spectre. Allow local network traffic in your VPN, or turn it off, then scan again. mDNS still works because it goes through the system service, which is why services can appear with no open ports.",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurface
       )

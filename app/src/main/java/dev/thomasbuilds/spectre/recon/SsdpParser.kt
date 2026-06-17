@@ -5,15 +5,14 @@ internal object SsdpParser {
   const val PORT = 1900
 
   fun mSearch(searchTarget: String): ByteArray =
-    (
-      "M-SEARCH * HTTP/1.1\r\n" +
-        "HOST: $MULTICAST_HOST:$PORT\r\n" +
-        "MAN: \"ssdp:discover\"\r\n" +
-        "MX: 2\r\n" +
-        "ST: $searchTarget\r\n" +
-        "USER-AGENT: Spectre-Recon/1.0\r\n" +
-        "\r\n"
-    ).toByteArray(Charsets.US_ASCII)
+    listOf(
+      "M-SEARCH * HTTP/1.1",
+      "HOST: $MULTICAST_HOST:$PORT",
+      "MAN: \"ssdp:discover\"",
+      "MX: 2",
+      "ST: $searchTarget",
+      "USER-AGENT: Spectre-Recon/1.0"
+    ).joinToString("\r\n", postfix = "\r\n\r\n").toByteArray(Charsets.US_ASCII)
 
   fun parse(
     raw: String,

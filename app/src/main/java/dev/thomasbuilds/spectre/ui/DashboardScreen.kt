@@ -361,8 +361,7 @@ fun DashboardScreen(
     EnableDialog(
       title = "Enable Wi-Fi?",
       body =
-        "Spectre needs Wi-Fi turned on to scan for access points.\n\n" +
-          "Tap Enable to open the Wi-Fi panel.",
+        "Spectre needs Wi-Fi turned on to scan for access points.\n\nTap Enable to open the Wi-Fi panel.",
       confirmLabel = "Enable",
       onConfirm = {
         showWifiDialog = false

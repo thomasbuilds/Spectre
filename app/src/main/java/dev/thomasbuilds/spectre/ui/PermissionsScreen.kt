@@ -80,8 +80,7 @@ fun PermissionsScreen(onContinue: () -> Unit) {
       Row(
         title = "Precise location",
         desc =
-          "Required by Android to enumerate Wi-Fi access points, GNSS satellites, " +
-            "Bluetooth devices, and cellular cell IDs. Location data stays on your device."
+          "Required by Android to enumerate Wi-Fi access points, GNSS satellites, Bluetooth devices, and cellular cell IDs. Location data stays on your device."
       )
       Row(
         title = "Bluetooth scan",
@@ -94,8 +93,7 @@ fun PermissionsScreen(onContinue: () -> Unit) {
       Row(
         title = "Local network (internet)",
         desc =
-          "Required by the Recon screen for host discovery + port scans + mDNS on the LAN " +
-            "you're connected to."
+          "Required by the Recon screen for host discovery + port scans + mDNS on the LAN you're connected to."
       )
       Spacer(Modifier.height(36.dp))
       Button(
