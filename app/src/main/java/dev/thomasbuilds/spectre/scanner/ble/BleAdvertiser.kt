@@ -33,14 +33,13 @@ class BleAdvertiser(
     measuredPower: Int,
     onResult: (Boolean, String) -> Unit
   ) {
-    startManufacturer(APPLE_COMPANY_ID, buildIBeacon(uuid, major, minor, measuredPower), connectable = false, onResult)
+    startManufacturer(APPLE_COMPANY_ID, buildIBeacon(uuid, major, minor, measuredPower), onResult)
   }
 
   @SuppressLint("MissingPermission")
-  fun startManufacturer(
+  private fun startManufacturer(
     companyId: Int,
     data: ByteArray,
-    connectable: Boolean,
     onResult: (Boolean, String) -> Unit
   ) {
     stop()
@@ -63,7 +62,7 @@ class BleAdvertiser(
         .Builder()
         .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
         .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
-        .setConnectable(connectable)
+        .setConnectable(false)
         .setTimeout(0)
         .build()
     val advData =

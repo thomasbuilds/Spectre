@@ -428,7 +428,6 @@ private fun matchesManufacturerFilter(
   details: List<DetailEntry>,
   tokens: List<String>
 ): Boolean {
-  if (tokens.isEmpty()) return true
   val manuEntry =
     details
       .firstOrNull { it.label == "Manufacturer" }

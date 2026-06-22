@@ -81,7 +81,7 @@ class GnssScanner(
         val groups = raw.groupBy { it.constellation to it.svid }
         val merged =
           groups.values.map { group ->
-            val bestBand = group.maxByOrNull { it.cn0DbHz } ?: group.first()
+            val bestBand = group.maxBy { it.cn0DbHz }
             val bandsByCn0 = group.sortedByDescending { it.cn0DbHz }
             val usedAnyBand = group.any { it.usedInFix }
 

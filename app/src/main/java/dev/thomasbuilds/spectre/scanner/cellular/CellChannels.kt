@@ -19,7 +19,6 @@ internal object CellChannels {
   }
 
   fun uarfcnToMhz(uarfcn: Int): Double? {
-    if (uarfcn <= 0) return null
     val mhz = uarfcn * 0.2
     return if (mhz in 400.0..3000.0) mhz else null
   }
@@ -27,8 +26,7 @@ internal object CellChannels {
   // 512..810 overlaps DCS-1800 and PCS-1900. Resolved as DCS-1800, the near-universal modern allocation.
   fun arfcnToMhz(arfcn: Int): Double? =
     when (arfcn) {
-      0 -> 935.0
-      in 1..124 -> 935.0 + 0.2 * arfcn
+      in 0..124 -> 935.0 + 0.2 * arfcn
       in 128..251 -> 869.2 + 0.2 * (arfcn - 128)
       in 512..885 -> 1805.2 + 0.2 * (arfcn - 512)
       in 975..1023 -> 935.0 + 0.2 * (arfcn - 1024)

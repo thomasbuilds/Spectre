@@ -239,14 +239,14 @@ class LanScanner(
       if (cm != null && localNet != null) cm.bindProcessToNetwork(localNet)
       try {
         val hostCount = AtomicInteger(0)
-        val signatures = ConcurrentHashMap<String, Int>()
+        val signatures = ConcurrentHashMap.newKeySet<String>()
         withContext(io) {
           coroutineScope {
             ips.forEach { ip ->
               launch {
                 probeHost(ip, probePorts, timeoutMs)?.let {
                   hostCount.incrementAndGet()
-                  signatures.merge(it.openPorts.joinToString(","), 1) { a, b -> a + b }
+                  signatures.add(it.openPorts.joinToString(","))
                   send(it)
                 }
               }
@@ -469,7 +469,7 @@ class LanScanner(
       val parts = subnet.localIp.split(".").mapNotNull { it.toIntOrNull() }
       if (parts.size != 4) return null
       val ipInt = (parts[0] shl 24) or (parts[1] shl 16) or (parts[2] shl 8) or parts[3]
-      val maskInt = if (subnet.prefixLength == 0) 0 else (-1 shl (32 - subnet.prefixLength))
+      val maskInt = -1 shl (32 - subnet.prefixLength)
       val network = ipInt and maskInt
       val broadcast = network or maskInt.inv()
       val firstHost = (network + 1).toLong() and 0xFFFFFFFFL

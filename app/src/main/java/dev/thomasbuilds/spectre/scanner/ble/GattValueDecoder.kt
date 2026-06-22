@@ -151,7 +151,6 @@ object GattValueDecoder {
   private fun ByteArray.uint16leAt(offset: Int): Int = (this[offset].toInt() and 0xff) or ((this[offset + 1].toInt() and 0xff) shl 8)
 
   private fun heartRate(bytes: ByteArray): String {
-    if (bytes.isEmpty()) return "(empty)"
     val flags = bytes[0].toInt() and 0xff
     val wide = (flags and 0x01) != 0
     return if (wide && bytes.size >= 3) {

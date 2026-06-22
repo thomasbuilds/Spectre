@@ -35,7 +35,7 @@ internal object WifiCapabilities {
     return if (found.isEmpty()) "None" else found.joinToString(" / ")
   }
 
-  fun hasWps(capabilities: String?): Boolean = capabilities.orEmpty().let { "[WPS]" in it || "WPS]" in it }
+  fun hasWps(capabilities: String?): Boolean = "WPS]" in capabilities.orEmpty()
 
   fun mfpStatus(capabilities: String?): String {
     val caps = capabilities.orEmpty()
