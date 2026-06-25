@@ -89,6 +89,17 @@ fun DashboardScreen(
   var expandedDetailKey by rememberSaveable(expanded) { mutableStateOf<String?>(null) }
   var detailAnchorIndex by rememberSaveable(expanded) { mutableIntStateOf(-1) }
   val detailState = rememberDetailListState()
+  // Expanding a row freezes the Bluetooth list order, an explicit filter/sort edit should release
+  // that freeze so the change takes effect instead of showing the stale frozen snapshot.
+  LaunchedEffect(
+    detailState.btSort,
+    detailState.btManufacturerFilter,
+    detailState.btFilterMode,
+    detailState.btAddressTypes,
+    settings.showStaleBluetooth
+  ) {
+    detailState.btFrozenList = null
+  }
   val onToggleDetail: (String, Int) -> Unit = { key, index ->
     if (expandedDetailKey == key) {
       expandedDetailKey = null
