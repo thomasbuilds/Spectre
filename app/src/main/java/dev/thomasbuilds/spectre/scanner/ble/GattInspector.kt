@@ -37,27 +37,20 @@ data class GattServiceInfo(
 sealed class GattInspection {
   data object Idle : GattInspection()
 
-  data class Connecting(
-    val mac: String
-  ) : GattInspection()
+  data object Connecting : GattInspection()
 
-  data class DiscoveringServices(
-    val mac: String
-  ) : GattInspection()
+  data object DiscoveringServices : GattInspection()
 
   data class ReadingValues(
-    val mac: String,
     val done: Int,
     val total: Int
   ) : GattInspection()
 
   data class Done(
-    val mac: String,
     val services: List<GattServiceInfo>
   ) : GattInspection()
 
   data class Failed(
-    val mac: String,
     val reason: String
   ) : GattInspection()
 }
@@ -88,16 +81,16 @@ class GattInspector(
     callback: (GattInspection) -> Unit
   ) {
     if (!hasPermission()) {
-      callback(GattInspection.Failed(mac, "BLUETOOTH_CONNECT not granted"))
+      callback(GattInspection.Failed("BLUETOOTH_CONNECT not granted"))
       return
     }
     val a = adapter
     if (a == null || !a.isEnabled) {
-      callback(GattInspection.Failed(mac, "Bluetooth is off"))
+      callback(GattInspection.Failed("Bluetooth is off"))
       return
     }
     if (!BluetoothAdapter.checkBluetoothAddress(mac)) {
-      callback(GattInspection.Failed(mac, "Invalid MAC"))
+      callback(GattInspection.Failed("Invalid MAC"))
       return
     }
 
@@ -109,7 +102,7 @@ class GattInspector(
     }
     gatt = null
 
-    callback(GattInspection.Connecting(mac))
+    callback(GattInspection.Connecting)
     val s = Session(mac, callback)
     session = s
 
@@ -130,7 +123,7 @@ class GattInspector(
                 }
                 s.connected = true
                 s.disarmConnectTimeout()
-                s.deliver(GattInspection.DiscoveringServices(mac))
+                s.deliver(GattInspection.DiscoveringServices)
                 runCatching { g.discoverServices() }
               }
             }
@@ -369,7 +362,7 @@ class GattInspector(
     }
 
     fun startReading() {
-      deliver(GattInspection.ReadingValues(mac, 0, totalReads))
+      deliver(GattInspection.ReadingValues(0, totalReads))
       readNext()
     }
 
@@ -408,7 +401,7 @@ class GattInspector(
             .getOrElse { bytesToHex(value) }
         values[uuid] = decoded
       }
-      deliver(GattInspection.ReadingValues(mac, doneReads, totalReads))
+      deliver(GattInspection.ReadingValues(doneReads, totalReads))
       mainHandler.post { readNext() }
     }
 
@@ -419,7 +412,7 @@ class GattInspector(
           if (completed || cancelled) return@Runnable
           if (queue.isNotEmpty() && queue.first().uuid.toString() == uuid) {
             queue.removeFirst()
-            deliver(GattInspection.ReadingValues(mac, doneReads, totalReads))
+            deliver(GattInspection.ReadingValues(doneReads, totalReads))
             readNext()
           }
         }
@@ -456,7 +449,7 @@ class GattInspector(
       disarmTimeout()
       disarmConnectTimeout()
       val infos = services.map { it.toInfo(values) }
-      deliver(GattInspection.Done(mac, infos))
+      deliver(GattInspection.Done(infos))
       if (close) detach(g)
     }
 
@@ -468,7 +461,7 @@ class GattInspector(
       completed = true
       disarmTimeout()
       disarmConnectTimeout()
-      deliver(GattInspection.Failed(mac, reason))
+      deliver(GattInspection.Failed(reason))
       detach(g)
     }
 

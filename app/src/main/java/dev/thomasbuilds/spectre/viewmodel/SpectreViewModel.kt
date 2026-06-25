@@ -113,7 +113,6 @@ class SpectreViewModel(
   }
 
   override fun onCleared() {
-    super.onCleared()
     if (isBound) {
       runCatching { getApplication<Application>().unbindService(connection) }
       isBound = false

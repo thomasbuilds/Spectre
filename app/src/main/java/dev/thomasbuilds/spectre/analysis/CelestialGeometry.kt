@@ -84,7 +84,7 @@ object CelestialGeometry {
     val lon = atan2(y, x)
     val p = sqrt(x * x + y * y)
     var lat = atan2(z, p * (1.0 - E2))
-    for (i in 0..<4) {
+    repeat(4) {
       val sinLat = sin(lat)
       val n = A / sqrt(1.0 - E2 * sinLat * sinLat)
       lat = atan2(z + E2 * n * sinLat, p)

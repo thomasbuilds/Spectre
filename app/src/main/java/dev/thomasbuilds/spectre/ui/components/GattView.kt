@@ -93,7 +93,7 @@ internal fun BluetoothExpandable(
           Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedButton(
               onClick = {
-                inspection = GattInspection.Connecting(device.mac)
+                inspection = GattInspection.Connecting
                 inspector.inspect(device.mac, resolveBleDevice(device.mac)) { inspection = it }
               },
               enabled =

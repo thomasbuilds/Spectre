@@ -19,7 +19,6 @@ internal object SsdpParser {
     fromIp: String
   ): SsdpDevice? {
     val lines = raw.lineSequence().toList()
-    if (lines.isEmpty()) return null
     val statusLine = lines[0].trim()
     val isResponse = statusLine.startsWith("HTTP/1.1 200", ignoreCase = true)
     val isNotify = statusLine.startsWith("NOTIFY ", ignoreCase = true)
