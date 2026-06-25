@@ -425,6 +425,48 @@ private fun WifiFilterSheet(
         }
       }
 
+      SheetSection(icon = Icons.Rounded.Wifi, label = "Band") {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          WifiBand.entries.forEach { band ->
+            FilterChip(
+              selected = band in selectedBands,
+              onClick = { onBandToggle(band) },
+              label = { Text(band.label) },
+              colors = filterChipColors(),
+              border = filterChipBorder(band in selectedBands)
+            )
+          }
+        }
+      }
+
+      SheetSection(icon = Icons.Rounded.Lock, label = "Security") {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          WifiSecurity.entries.forEach { sec ->
+            FilterChip(
+              selected = sec in selectedSecurities,
+              onClick = { onSecurityToggle(sec) },
+              label = { Text(sec.label) },
+              colors = filterChipColors(),
+              border = filterChipBorder(sec in selectedSecurities)
+            )
+          }
+        }
+      }
+
+      SheetSection(icon = Icons.Rounded.Key, label = "WPS") {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          WifiWpsFilter.entries.forEach { f ->
+            FilterChip(
+              selected = f == wpsFilter,
+              onClick = { onWpsFilterChange(f) },
+              label = { Text(f.label) },
+              colors = filterChipColors(),
+              border = filterChipBorder(f == wpsFilter)
+            )
+          }
+        }
+      }
+
       SheetSection(icon = Icons.Rounded.FilterAlt, label = "Vendor filter") {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
           FilterMode.entries.forEach { mode ->
@@ -478,48 +520,6 @@ private fun WifiFilterSheet(
           color = MaterialTheme.colorScheme.onSurfaceVariant,
           modifier = Modifier.padding(top = 2.dp, start = 4.dp)
         )
-      }
-
-      SheetSection(icon = Icons.Rounded.Wifi, label = "Band") {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-          WifiBand.entries.forEach { band ->
-            FilterChip(
-              selected = band in selectedBands,
-              onClick = { onBandToggle(band) },
-              label = { Text(band.label) },
-              colors = filterChipColors(),
-              border = filterChipBorder(band in selectedBands)
-            )
-          }
-        }
-      }
-
-      SheetSection(icon = Icons.Rounded.Lock, label = "Security") {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-          WifiSecurity.entries.forEach { sec ->
-            FilterChip(
-              selected = sec in selectedSecurities,
-              onClick = { onSecurityToggle(sec) },
-              label = { Text(sec.label) },
-              colors = filterChipColors(),
-              border = filterChipBorder(sec in selectedSecurities)
-            )
-          }
-        }
-      }
-
-      SheetSection(icon = Icons.Rounded.Key, label = "WPS") {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-          WifiWpsFilter.entries.forEach { f ->
-            FilterChip(
-              selected = f == wpsFilter,
-              onClick = { onWpsFilterChange(f) },
-              label = { Text(f.label) },
-              colors = filterChipColors(),
-              border = filterChipBorder(f == wpsFilter)
-            )
-          }
-        }
       }
 
       ShowStaleToggle(
