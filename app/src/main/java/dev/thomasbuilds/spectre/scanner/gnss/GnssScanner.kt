@@ -42,6 +42,15 @@ class GnssScanner(
   private val rangeRates = ConcurrentHashMap<Pair<Constellation, Int>, RangeReading>()
 
   @Volatile
+  private var measurementsNotSupported = false
+
+  @Volatile
+  private var driftSeen = false
+
+  @Volatile
+  private var syncedNoDriftEpochs = 0
+
+  @Volatile
   private var registered = false
 
   private val _state = MutableStateFlow(GnssSourceState())
@@ -93,6 +102,8 @@ class GnssScanner(
           )
         }
 
+        val rateUnavailable =
+          measurementsNotSupported || (!driftSeen && syncedNoDriftEpochs >= SYNCED_NO_DRIFT_EPOCHS)
         val groups = raw.groupBy { it.constellation to it.svid }
         val merged =
           groups.values.map { group ->
@@ -123,12 +134,16 @@ class GnssScanner(
                 add(DetailEntry("Elevation", "${"%.1f".format(bestBand.elevationDeg)}°"))
                 add(DetailEntry("Azimuth", "${"%.1f".format(bestBand.azimuthDeg)}°"))
                 val rateText =
-                  rangeRates[bestBand.constellation to bestBand.svid]
-                    ?.takeIf { now - it.atMs <= RANGE_RATE_STALE_MS }
-                    ?.let { reading ->
-                      val direction = if (reading.metersPerSecond < 0f) "approaching" else "receding"
-                      "${"%.0f".format(abs(reading.metersPerSecond))} m/s ($direction)"
-                    } ?: "Pending"
+                  if (rateUnavailable) {
+                    "Unavailable"
+                  } else {
+                    rangeRates[bestBand.constellation to bestBand.svid]
+                      ?.takeIf { now - it.atMs <= RANGE_RATE_STALE_MS }
+                      ?.let { reading ->
+                        val direction = if (reading.metersPerSecond < 0f) "approaching" else "receding"
+                        "${"%.0f".format(abs(reading.metersPerSecond))} m/s ($direction)"
+                      } ?: "Pending"
+                  }
                 add(DetailEntry("Range rate", rateText))
                 if (subPoint != null) {
                   add(
@@ -180,9 +195,18 @@ class GnssScanner(
 
   private val measurementsCallback =
     object : GnssMeasurementsEvent.Callback() {
+      override fun onStatusChanged(status: Int) {
+        if (status == STATUS_NOT_SUPPORTED) measurementsNotSupported = true
+      }
+
       override fun onGnssMeasurementsReceived(event: GnssMeasurementsEvent) {
         val clock = event.clock
-        if (!clock.hasDriftNanosPerSecond()) return
+        if (!clock.hasDriftNanosPerSecond()) {
+          syncedNoDriftEpochs = if (clock.hasFullBiasNanos()) syncedNoDriftEpochs + 1 else 0
+          return
+        }
+        driftSeen = true
+        syncedNoDriftEpochs = 0
         val driftMps = clock.driftNanosPerSecond * 1e-9 * SPEED_OF_LIGHT_MPS
         val now = System.currentTimeMillis()
         for (m in event.measurements) {
@@ -243,6 +267,9 @@ class GnssScanner(
       lm?.removeUpdates(locationListener)
     }
     rangeRates.clear()
+    driftSeen = false
+    syncedNoDriftEpochs = 0
+    measurementsNotSupported = false
     registered = false
   }
 
@@ -276,6 +303,7 @@ class GnssScanner(
     const val GNSS_WARMUP_MS = 45_000L
     const val GNSS_STALENESS_MS = 20_000L
     const val RANGE_RATE_STALE_MS = 5_000L
+    const val SYNCED_NO_DRIFT_EPOCHS = 8
     const val SPEED_OF_LIGHT_MPS = 299_792_458.0
   }
 }
