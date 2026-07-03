@@ -1,4 +1,4 @@
-![Banner](banner.png)
+![Banner](metadata/en-US/images/featureGraphic.png)
 
 **Spectre** is an Android app for observing and interacting with the wireless environment around you. It monitors signals from Bluetooth devices, Wi-Fi access points, cellular towers, and GNSS satellites. Spectre also features a growing set of pentesting tools, constrained by Android's security model.
 
