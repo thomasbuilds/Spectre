@@ -1,0 +1,14 @@
+Spectre is an Android app for observing and interacting with the wireless environment around you. It monitors signals from Bluetooth devices, Wi-Fi access points, cellular towers, and GNSS satellites, and features a growing set of pentesting tools, constrained by Android's security model.
+
+Features:
+
+• Live RF exposure gauge: a single dBm figure for the total received RF power across cellular, Wi-Fi, and Bluetooth
+• Cellular: serving and neighbor cells on 5G, 4G, 3G, and 2G with operator, identifiers, bands, reference measurements, and a timing-advance distance estimate where available
+• Wi-Fi: access points on the 2.4, 5, and 6 GHz bands with vendor, security, cipher, channel, width, and a distance estimate, including true 802.11mc FTM ranging where the hardware supports it
+• Bluetooth LE: advertising devices with name, MAC, vendor, RSSI, address type, PHY, service UUIDs, and decoded manufacturer data including iBeacon
+• GNSS: multi-constellation tracking with dual-frequency support, carrier-to-noise, elevation, azimuth, used-in-fix status, and a computed sub-satellite ground point
+• Local-network scan: host discovery via TCP-connect probes and SSDP/UPnP, with banner grabbing, service fingerprinting, and reverse DNS, plus mDNS/DNS-SD service discovery
+• GATT inspector: connect to a BLE device, enumerate its services and characteristics, read and decode their values, and write to writable ones
+• iBeacon broadcast: broadcast as an iBeacon with configurable UUID, major, minor, and measured power
+
+Spectre requests location, Bluetooth, and phone-state permissions because Android gates Wi-Fi scan results, BLE scans, and cell identities behind them. Everything runs on-device. There are no ads, no trackers, and no Google dependencies. Network access is used only to probe devices on your own local network.

@@ -1,9 +1,5 @@
 #!/bin/bash
-# Build and sign an Android release APK with a YubiKey, then publish it as a
-# draft GitHub release.
-#
-# Usage:
-#   ./release vX.Y.Z
+# Usage: ./release vX.Y.Z
 
 set -euo pipefail
 
@@ -20,40 +16,42 @@ normalize_fp() {
 cd "$(dirname "$0")"
 
 readonly CERT_FILE="CERT.sha256"
+readonly METADATA_DIR="metadata/en-US"
+readonly GRADLE_FILE="app/build.gradle.kts"
 APP_NAME=""
 readonly PKCS11_LIB="/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so"
 EXPECTED_CERT=""
-[[ -f ${CERT_FILE} ]] && EXPECTED_CERT="$(normalize_fp "$(< "${CERT_FILE}")")"
+[[ -f ${CERT_FILE} ]] && EXPECTED_CERT="$(normalize_fp "$(<"${CERT_FILE}")")"
 
 TAG="${1:-}"
 [[ -n ${TAG} ]] || die "usage: $0 <vX.Y.Z>"
-semver='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
-semver+='(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
-semver+='(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?'
-semver+='(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$'
-[[ ${TAG} =~ ${semver} ]] || die "invalid version tag"
+SEMVER='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
+SEMVER+='(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+SEMVER+='(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?'
+SEMVER+='(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$'
+[[ ${TAG} =~ ${SEMVER} ]] || die "invalid version tag"
 VERSION_NAME="${TAG#v}"
 VERSION_MAJOR="${BASH_REMATCH[1]}"
 VERSION_MINOR="${BASH_REMATCH[2]}"
 VERSION_PATCH="${BASH_REMATCH[3]}"
 
-PRERELEASE="${VERSION_NAME%%+*}"
-if [[ ${PRERELEASE} == *-* ]]; then
-  PRERELEASE="${PRERELEASE#*-}"
+# Build metadata and bare channels alias another tag's versionCode.
+[[ ${VERSION_NAME} == *+* ]] \
+  && die "build metadata (+) is not allowed in release tags"
+if [[ ${VERSION_NAME} == *-* ]]; then
+  PRERELEASE="${VERSION_NAME#*-}"
 else
   PRERELEASE=""
 fi
 if [[ -z ${PRERELEASE} ]]; then
   PRE_ORDINAL=999
 else
+  [[ ${PRERELEASE} == *.* ]] \
+    || die "prerelease channel needs an explicit number (use -${PRERELEASE}.0)"
   PRE_CHANNEL="${PRERELEASE%%.*}"
-  if [[ ${PRERELEASE} == *.* ]]; then
-    PRE_NUM="${PRERELEASE#*.}"
-  else
-    PRE_NUM=0
-  fi
-  [[ ${PRE_NUM} =~ ^[0-9]+$ && ${PRE_NUM} -lt 100 ]] ||
-    die "prerelease number must be numeric and < 100 (got '${PRE_NUM}')"
+  PRE_NUM="${PRERELEASE#*.}"
+  [[ ${PRE_NUM} =~ ^[0-9]+$ && ${PRE_NUM} -lt 100 ]] \
+    || die "prerelease number must be numeric and < 100 (got '${PRE_NUM}')"
   case "${PRE_CHANNEL}" in
     alpha) PRE_ORDINAL=$((PRE_NUM)) ;;
     beta) PRE_ORDINAL=$((100 + PRE_NUM)) ;;
@@ -62,121 +60,217 @@ else
   esac
 fi
 
-# Pack the channel into versionCode so it strictly increases across prereleases
-# (alpha < beta < rc < final). Bounds keep it inside a signed 32-bit int.
-((VERSION_MAJOR <= 210 && VERSION_MINOR < 100 && VERSION_PATCH < 100)) ||
-  die "version out of range for versionCode (major <= 210, minor/patch < 100)"
+# Bounds keep versionCode inside a signed 32-bit int.
+((VERSION_MAJOR <= 210 && VERSION_MINOR < 100 && VERSION_PATCH < 100)) \
+  || die "version out of range for versionCode (major <= 210, minor/patch < 100)"
 VERSION_CODE=$((VERSION_MAJOR * 10000000 + VERSION_MINOR * 100000))
 VERSION_CODE=$((VERSION_CODE + VERSION_PATCH * 1000 + PRE_ORDINAL))
 
-command -v gh > /dev/null || die "gh not found"
-gh auth status > /dev/null 2>&1 ||
-  die "gh not authenticated, run: gh auth login"
-command -v java > /dev/null || die "java not found"
-[[ -f ${PKCS11_LIB} ]] || die "PKCS#11 module not found at ${PKCS11_LIB}"
+# F-Droid reads changelogs/<versionCode>.txt from the tag on stable releases.
+CHANGELOG="${METADATA_DIR}/changelogs/${VERSION_CODE}.txt"
+if ((PRE_ORDINAL == 999)); then
+  [[ -s ${CHANGELOG} ]] \
+    || die "missing ${CHANGELOG}, write and commit it first"
+  (($(wc -c <"${CHANGELOG}") <= 500)) \
+    || die "${CHANGELOG} exceeds F-Droid's 500-character limit"
+fi
+
+command -v gh >/dev/null || die "gh not found"
+gh auth status >/dev/null 2>&1 \
+  || die "gh not authenticated, run: gh auth login"
+command -v java >/dev/null || die "java not found"
+# Only the full opensc package works, opensc-pkcs11 alone segfaults the JVM.
+[[ -f ${PKCS11_LIB} ]] \
+  || die "PKCS#11 module not found at ${PKCS11_LIB} (apt install opensc)"
 [[ -z "$(git status --porcelain)" ]] || die "working tree not clean"
-gh release view "${TAG}" > /dev/null 2>&1 &&
-  die "release ${TAG} already exists"
+git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null \
+  && die "tag ${TAG} already exists"
+gh release view "${TAG}" >/dev/null 2>&1 \
+  && die "release ${TAG} already exists"
+git fetch -q origin main
+[[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] \
+  || die "HEAD is not the tip of origin/main, sync first"
 
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-${HOME}/Android/Sdk}}"
 [[ -d "${SDK}/build-tools" ]] || die "Android build-tools not found in ${SDK}"
 BT=$(printf '%s\n' "${SDK}"/build-tools/[0-9]* | sort -V | tail -1)
 [[ -d ${BT} ]] || die "no versioned build-tools dir under ${SDK}/build-tools"
-[[ -x "${BT}/zipalign" && -f "${BT}/lib/apksigner.jar" ]] ||
-  die "zipalign/apksigner missing under ${BT}"
+[[ -x "${BT}/zipalign" && -f "${BT}/lib/apksigner.jar" ]] \
+  || die "zipalign/apksigner missing under ${BT}"
+BT_VERSION="$(basename "${BT}")"
+((${BT_VERSION%%.*} >= 35)) \
+  || die "build-tools >= 35 required (apksigner --alignment-preserved)"
+
+# bundletool cannot sign via PKCS#11, so the YubiKey signs the splits after.
+BUNDLETOOL=()
+command -v bundletool >/dev/null && BUNDLETOOL=(bundletool)
 
 OUT="build/release"
 mkdir -p "${OUT}"
 NOTES="${OUT}/release-notes.md"
 
-echo ">> Building release APK (version ${VERSION_NAME}, code ${VERSION_CODE})"
-./gradlew :app:assembleRelease \
-  -PappVersionName="${VERSION_NAME}" \
-  -PappVersionCode="${VERSION_CODE}"
+PKCS11_CFG=""
+APKS_TMP=""
+# A failed last command in an EXIT trap becomes the exit status, hence || true.
+cleanup() {
+  rm -rf "${PKCS11_CFG}" "${APKS_TMP}"
+  git checkout -q -- "${GRADLE_FILE}" || true
+}
+trap cleanup EXIT
+
+echo ">> Setting version ${VERSION_NAME} (code ${VERSION_CODE})"
+sed -i -E \
+  -e "s/(versionCode = )[0-9]+/\1${VERSION_CODE}/" \
+  -e "s/(versionName = )\"[^\"]*\"/\1\"${VERSION_NAME}\"/" \
+  "${GRADLE_FILE}"
+grep -q "versionCode = ${VERSION_CODE}$" "${GRADLE_FILE}" \
+  && grep -q "versionName = \"${VERSION_NAME}\"$" "${GRADLE_FILE}" \
+  || die "failed to write version into ${GRADLE_FILE}"
+
+GRADLE_TASKS=(:app:assembleRelease)
+((${#BUNDLETOOL[@]})) && GRADLE_TASKS+=(:app:bundleRelease)
+echo ">> Building release artifacts"
+./gradlew "${GRADLE_TASKS[@]}"
 
 shopt -s nullglob
 RELEASE_APKS=(app/build/outputs/apk/release/*-release-unsigned.apk)
 shopt -u nullglob
-((${#RELEASE_APKS[@]} == 1)) ||
-  die "expected exactly one *-release-unsigned.apk, found ${#RELEASE_APKS[@]}"
+((${#RELEASE_APKS[@]} == 1)) \
+  || die "expected exactly one *-release-unsigned.apk, found ${#RELEASE_APKS[@]}"
 UNSIGNED="${RELEASE_APKS[0]}"
 APK_BASE="$(basename "${UNSIGNED}" -release-unsigned.apk)"
-ALIGNED="${OUT}/${APK_BASE}-${TAG}-aligned.apk"
 SIGNED="${OUT}/${APK_BASE}-${TAG}.apk"
+AAB="app/build/outputs/bundle/release/${APK_BASE}-release.aab"
 
 if [[ -z ${APP_NAME} ]]; then
-  APP_NAME="$("${BT}/aapt2" dump badging "${UNSIGNED}" 2> /dev/null |
-    sed -n "s/.*application-label:'\([^']*\)'.*/\1/p" | head -1)"
+  APP_NAME="$("${BT}/aapt2" dump badging "${UNSIGNED}" 2>/dev/null \
+    | sed -n "s/.*application-label:'\([^']*\)'.*/\1/p" | head -1)"
 fi
 [[ -n ${APP_NAME} ]] || APP_NAME="${APK_BASE}"
 
-# Must run before signing: the v2/v3 signature covers the aligned bytes.
-echo ">> Aligning the APK (zipalign)"
-"${BT}/zipalign" -p -f 4 "${UNSIGNED}" "${ALIGNED}"
+# Realigning would change the bytes F-Droid verifies, so check only.
+echo ">> Checking APK alignment"
+"${BT}/zipalign" -c -p 4 "${UNSIGNED}" >/dev/null \
+  || die "unsigned APK is not aligned"
 
-echo ">> Signing with the YubiKey"
 PKCS11_CFG="$(mktemp)"
-trap 'rm -f "$PKCS11_CFG" "$ALIGNED"' EXIT
-printf 'name = OpenSC\nlibrary = %s\n' "${PKCS11_LIB}" > "${PKCS11_CFG}"
-# Read the PIN ourselves so the touch prompt lands right after it, and so it
-# never reaches argv or disk.
+printf 'name = OpenSC\nlibrary = %s\n' "${PKCS11_LIB}" >"${PKCS11_CFG}"
+# The PIN must never reach argv or disk.
 read -rsp '>> Enter YubiKey PIN: ' YUBIKEY_PIN
 echo
-echo ">> Please touch your device"
 
-# --add-exports exposes the internal SunPKCS11 class to apksigner. v1/v4 stay
-# off because minSdk >= 24 covers v2/v3. The grep drops apksigner's spurious
-# "Keystore password" line, and PIPESTATUS preserves its real exit code.
-set +e
-printf '%s\n' "${YUBIKEY_PIN}" |
-  java --enable-native-access=ALL-UNNAMED \
-    --add-exports jdk.crypto.cryptoki/sun.security.pkcs11=ALL-UNNAMED \
-    -jar "${BT}/lib/apksigner.jar" sign \
-    --ks NONE --ks-type PKCS11 \
-    --provider-class sun.security.pkcs11.SunPKCS11 \
-    --provider-arg "${PKCS11_CFG}" \
-    --ks-key-alias "Certificate for Digital Signature" \
-    --ks-pass stdin \
-    --v1-signing-enabled false \
-    --v4-signing-enabled false \
-    --out "${SIGNED}" "${ALIGNED}" |
-  grep -v '^Keystore password for signer #'
-SIGN_RC=${PIPESTATUS[1]}
-set -e
-unset YUBIKEY_PIN
-((SIGN_RC == 0)) || die "apksigner signing failed (exit ${SIGN_RC})"
+# --add-exports unlocks SunPKCS11 for apksigner. minSdk >= 24 needs no v1/v4.
+sign_apk() {
+  local input="$1" output="$2" rc
+  shift 2
+  set +e
+  printf '%s\n' "${YUBIKEY_PIN}" \
+    | java --enable-native-access=ALL-UNNAMED \
+      --add-exports jdk.crypto.cryptoki/sun.security.pkcs11=ALL-UNNAMED \
+      -jar "${BT}/lib/apksigner.jar" sign \
+      --ks NONE --ks-type PKCS11 \
+      --provider-class sun.security.pkcs11.SunPKCS11 \
+      --provider-arg "${PKCS11_CFG}" \
+      --ks-key-alias "Certificate for Digital Signature" \
+      --ks-pass stdin \
+      --v1-signing-enabled false \
+      --v4-signing-enabled false \
+      "$@" --out "${output}" "${input}" \
+    | grep -v '^Keystore password for signer #'
+  rc=${PIPESTATUS[1]}
+  set -e
+  return "${rc}"
+}
+
+# apksigner would otherwise repad the archive and break F-Droid verification.
+echo ">> Signing the APK with the YubiKey, please touch your device"
+sign_apk "${UNSIGNED}" "${SIGNED}" --alignment-preserved \
+  || die "apksigner signing failed"
 
 echo ">> Verifying signature"
 GOT=$(
   java --enable-native-access=ALL-UNNAMED \
-    -jar "${BT}/lib/apksigner.jar" verify --print-certs "${SIGNED}" |
-    awk '/SHA-256 digest:/ {print $NF; exit}'
+    -jar "${BT}/lib/apksigner.jar" verify --print-certs "${SIGNED}" \
+    | awk '/SHA-256 digest:/ {print $NF; exit}'
 )
 GOT_NORM=$(normalize_fp "${GOT}")
-CERT_FMT=$(sed -E 's/(..)/\1:/g; s/:$//' <<< "${GOT_NORM^^}")
+CERT_FMT=$(sed -E 's/(..)/\1:/g; s/:$//' <<<"${GOT_NORM^^}")
 if [[ -n ${EXPECTED_CERT} ]]; then
-  [[ ${GOT_NORM} == "${EXPECTED_CERT}" ]] ||
-    die "signing-cert ${CERT_FMT} does not match ${CERT_FILE}"
+  [[ ${GOT_NORM} == "${EXPECTED_CERT}" ]] \
+    || die "signing-cert ${CERT_FMT} does not match ${CERT_FILE}"
   echo "   Cert SHA-256 OK"
 else
   echo "   Cert SHA-256 ${CERT_FMT} (${CERT_FILE} absent, not pinned)"
 fi
 
-cat > "${NOTES}" << EOF
-<!-- changelog -->
+APKSET=""
+if ((${#BUNDLETOOL[@]})); then
+  echo ">> Building Accrescent APK set"
+  command -v zip >/dev/null && command -v unzip >/dev/null \
+    || die "zip/unzip not found"
+  [[ -f ${AAB} ]] || die "bundle not found at ${AAB}"
+  APKS_TMP="$(mktemp -d)"
+  # Hide any debug keystore so the splits come out unsigned.
+  ANDROID_SDK_HOME="${APKS_TMP}" HOME="${APKS_TMP}" \
+    JAVA_TOOL_OPTIONS="-Duser.home=${APKS_TMP}" \
+    "${BUNDLETOOL[@]}" build-apks \
+    --bundle "${AAB}" --output "${APKS_TMP}/unsigned.apks" \
+    2> >(grep -v '^Picked up JAVA_TOOL_OPTIONS' >&2) \
+    || die "bundletool build-apks failed"
+  mkdir "${APKS_TMP}/set"
+  unzip -q "${APKS_TMP}/unsigned.apks" -d "${APKS_TMP}/set"
+  shopt -s nullglob
+  SPLITS=("${APKS_TMP}/set"/splits/*.apk)
+  shopt -u nullglob
+  ((${#SPLITS[@]})) || die "no split APKs in the APK set"
+  echo ">> Signing ${#SPLITS[@]} split APKs, touch your device for each"
+  for SPLIT in "${SPLITS[@]}"; do
+    sign_apk "${SPLIT}" "${SPLIT}.signed" \
+      || die "apksigner failed on $(basename "${SPLIT}")"
+    mv -f "${SPLIT}.signed" "${SPLIT}"
+  done
+  APKSET="${OUT}/${APK_BASE}-${TAG}.apks"
+  (cd "${APKS_TMP}/set" && zip -q -X -r - .) >"${APKSET}"
+else
+  echo ">> bundletool not on PATH, skipping the Accrescent APK set"
+fi
+unset YUBIKEY_PIN
 
-SHA-256 signing certificate fingerprint:
-\`${CERT_FMT}\`
-EOF
+{
+  if [[ -s ${CHANGELOG} ]]; then
+    cat "${CHANGELOG}"
+  else
+    echo "<!-- changelog -->"
+  fi
+  echo
+  echo "SHA-256 signing certificate fingerprint:"
+  echo "\`${CERT_FMT}\`"
+} >"${NOTES}"
 
-SHA="$(git rev-parse HEAD)"
-git merge-base --is-ancestor "${SHA}" origin/main 2> /dev/null ||
-  die "HEAD (${SHA:0:10}) isn't on origin/main, 'git push' first"
+echo ">> Committing and pushing ${TAG}"
+git add "${GRADLE_FILE}"
+# Re-releasing a yanked version stages nothing, and an empty commit would die.
+if ! git diff --cached --quiet; then
+  git commit -q -m "Release ${VERSION_NAME}"
+fi
+git tag "${TAG}"
+# Drop the tag on rejection so a rerun is clean.
+git push --atomic -q origin HEAD:main "refs/tags/${TAG}" \
+  || {
+    git tag -d "${TAG}" >/dev/null
+    die "push rejected, nothing published"
+  }
 
-echo ">> Creating draft GitHub release for ${TAG} @ ${SHA:0:10}"
-gh release create "${TAG}" --target "${SHA}" --title "${APP_NAME} ${TAG}" \
-  --notes-file "${NOTES}" --draft "${SIGNED}"
+echo ">> Creating draft GitHub release for ${TAG}"
+PRERELEASE_FLAG=()
+((PRE_ORDINAL != 999)) && PRERELEASE_FLAG+=(--prerelease)
+gh release create "${TAG}" --verify-tag --title "${APP_NAME} ${TAG}" \
+  --notes-file "${NOTES}" --draft "${PRERELEASE_FLAG[@]}" \
+  "${SIGNED}"
 
 echo
 echo "Done: draft ${TAG}"
-echo "Add the changelog, then publish: gh release edit ${TAG} --draft=false"
+echo "Review the notes, then publish: gh release edit ${TAG} --draft=false"
+if [[ -n ${APKSET} ]]; then
+  echo "Accrescent APK set (upload via console.accrescent.app): ${APKSET}"
+fi

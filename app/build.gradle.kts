@@ -3,20 +3,6 @@ plugins {
   alias(libs.plugins.kotlin.compose)
 }
 
-val taggedVersion =
-  providers
-    .exec {
-      isIgnoreExitValue = true
-      commandLine("git", "describe", "--tags", "--abbrev=0")
-    }.standardOutput.asText
-    .map { it.trim().removePrefix("v") }
-
-val appVersionName =
-  (findProperty("appVersionName") as String?)
-    ?: taggedVersion.orNull?.ifEmpty { null }
-    ?: "0.0.0-dev"
-val appVersionCode = (findProperty("appVersionCode") as String?)?.toInt() ?: 1
-
 val commit = (findProperty("commit") as String?)?.takeIf { it.isNotBlank() }
 val debugVersionSuffix = if (commit != null) "-debug-$commit" else "-debug"
 
@@ -30,8 +16,8 @@ android {
     applicationId = "dev.thomasbuilds.spectre"
     minSdk = 31
     targetSdk = 37
-    versionCode = appVersionCode
-    versionName = appVersionName
+    versionCode = 101999
+    versionName = "0.1.1"
     vectorDrawables.useSupportLibrary = true
   }
 
@@ -66,10 +52,20 @@ android {
     includeInApk = false
     includeInBundle = false
   }
+
+  bundle {
+    language { enableSplit = false }
+    density { enableSplit = false }
+    abi { enableSplit = false }
+  }
 }
 
 base {
   archivesName = "spectre"
+}
+
+tasks.configureEach {
+  if (name.contains("ArtProfile")) enabled = false
 }
 
 kotlin {
