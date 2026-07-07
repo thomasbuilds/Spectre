@@ -39,6 +39,8 @@ class GnssScanner(
 
   @Volatile private var lastLocation: Location? = null
 
+  @Volatile private var lastStatusAtMs = 0L
+
   @Volatile private var driftSeen = false
 
   @Volatile private var syncedNoDriftEpochs = 0
@@ -161,6 +163,7 @@ class GnssScanner(
             )
           }
         lastSatellites = merged
+        lastStatusAtMs = now
         publishNow()
       }
     }
@@ -194,27 +197,35 @@ class GnssScanner(
     return ScannerStatus.OK
   }
 
-  @SuppressLint("MissingPermission")
   fun start(scope: CoroutineScope) {
-    if (!registered && hasPermission()) {
-      lm
-        ?.runCatching {
-          val request =
-            LocationRequest
-              .Builder(GPS_INTERVAL_MS)
-              .setMinUpdateDistanceMeters(0f)
-              .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
-              .build()
-          requestLocationUpdates(LocationManager.GPS_PROVIDER, request, callbackExecutor, locationListener)
-          registerGnssStatusCallback(callbackExecutor, callback)
-          registerGnssMeasurementsCallback(callbackExecutor, measurementsCallback)
-        }?.onSuccess { registered = true }
-        ?.onFailure { Log.w(TAG, "Failed to engage GPS", it) }
-    }
+    maybeRegister()
     if (heartbeatJob?.isActive != true) {
-      heartbeatJob = scope.repeatEvery(GNSS_HEARTBEAT_MS) { publishNow() }
+      // Also retries registration, a permission granted after service start never re-invokes start().
+      heartbeatJob =
+        scope.repeatEvery(GNSS_HEARTBEAT_MS) {
+          maybeRegister()
+          publishNow()
+        }
     }
     publishNow()
+  }
+
+  @SuppressLint("MissingPermission")
+  private fun maybeRegister() {
+    if (registered || !hasPermission()) return
+    lm
+      ?.runCatching {
+        val request =
+          LocationRequest
+            .Builder(GPS_INTERVAL_MS)
+            .setMinUpdateDistanceMeters(0f)
+            .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
+            .build()
+        requestLocationUpdates(LocationManager.GPS_PROVIDER, request, callbackExecutor, locationListener)
+        registerGnssStatusCallback(callbackExecutor, callback)
+        registerGnssMeasurementsCallback(callbackExecutor, measurementsCallback)
+      }?.onSuccess { registered = true }
+      ?.onFailure { Log.w(TAG, "Failed to engage GPS", it) }
   }
 
   fun stop() {
@@ -231,9 +242,11 @@ class GnssScanner(
 
   private fun publishNow() {
     val status = status()
-    val signals = if (status == ScannerStatus.OK) lastSatellites else emptyList()
-    val ready = readiness.compute(status == ScannerStatus.OK, signals.isNotEmpty(), SystemClock.elapsedRealtime())
-    _state.value = GnssSourceState(signals, status, ready)
+    val now = SystemClock.elapsedRealtime()
+    // Gate on callback recency. A silent chip's last list would otherwise republish as live forever.
+    val fresh = now - lastStatusAtMs <= GNSS_STALENESS_MS
+    val signals = if (status == ScannerStatus.OK && fresh) lastSatellites else emptyList()
+    _state.value = GnssSourceState(signals, status, readiness.compute(status == ScannerStatus.OK, signals.isNotEmpty(), now))
   }
 
   private fun formatDeg(

@@ -115,22 +115,7 @@ class WifiScanner(
   }
 
   fun start(scope: CoroutineScope) {
-    if (!hasPermission()) return
-    val w = wifi ?: return
-    if (!registered) {
-      runCatching { w.registerScanResultsCallback(callbackExecutor, scanCallback) }
-        .onSuccess { registered = true }
-      ingest()
-    }
-    if (!networkCallbackRegistered) {
-      val request =
-        NetworkRequest
-          .Builder()
-          .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-          .build()
-      runCatching { connectivityManager?.registerNetworkCallback(request, networkCallback) }
-        .onSuccess { networkCallbackRegistered = true }
-    }
+    maybeRegister()
     if (scanLoopJob?.isActive != true) {
       scanLoopJob =
         scope.launch {
@@ -147,9 +132,33 @@ class WifiScanner(
         }
     }
     if (heartbeatJob?.isActive != true) {
-      heartbeatJob = scope.repeatEvery(WIFI_HEARTBEAT_MS) { publishNow() }
+      // Also retries registration, a permission granted after service start never re-invokes start().
+      heartbeatJob =
+        scope.repeatEvery(WIFI_HEARTBEAT_MS) {
+          maybeRegister()
+          publishNow()
+        }
     }
     publishNow()
+  }
+
+  private fun maybeRegister() {
+    if (!hasPermission()) return
+    val w = wifi ?: return
+    if (!registered) {
+      runCatching { w.registerScanResultsCallback(callbackExecutor, scanCallback) }
+        .onSuccess { registered = true }
+      ingest()
+    }
+    if (!networkCallbackRegistered) {
+      val request =
+        NetworkRequest
+          .Builder()
+          .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+          .build()
+      runCatching { connectivityManager?.registerNetworkCallback(request, networkCallback) }
+        .onSuccess { networkCallbackRegistered = true }
+    }
   }
 
   fun stop() {
