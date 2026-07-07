@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.location.GnssMeasurementsEvent
 import android.location.GnssStatus
+import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.location.LocationRequest
@@ -34,22 +35,17 @@ class GnssScanner(
   private val lm: LocationManager? =
     context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
 
-  @Volatile
-  private var lastSatellites: List<GnssSignal> = emptyList()
+  @Volatile private var lastSatellites: List<GnssSignal> = emptyList()
 
-  @Volatile
-  private var lastLocation: android.location.Location? = null
+  @Volatile private var lastLocation: Location? = null
+
+  @Volatile private var driftSeen = false
+
+  @Volatile private var syncedNoDriftEpochs = 0
+
+  @Volatile private var registered = false
 
   private val rangeRates = ConcurrentHashMap<Pair<Constellation, Int>, RangeReading>()
-
-  @Volatile
-  private var driftSeen = false
-
-  @Volatile
-  private var syncedNoDriftEpochs = 0
-
-  @Volatile
-  private var registered = false
 
   private val _state = MutableStateFlow(GnssSourceState())
   val state: StateFlow<GnssSourceState> = _state.asStateFlow()
@@ -81,10 +77,8 @@ class GnssScanner(
     object : GnssStatus.Callback() {
       override fun onSatelliteStatusChanged(status: GnssStatus) {
         val now = SystemClock.elapsedRealtime()
-        val rawCount = status.satelliteCount
-        val raw = ArrayList<RawSatelliteEntry>(rawCount)
-        for (i in 0..<rawCount) {
-          raw.add(
+        val raw =
+          List(status.satelliteCount) { i ->
             RawSatelliteEntry(
               constellation = GnssBands.constellationFor(status.getConstellationType(i)),
               svid = status.getSvid(i),
@@ -97,34 +91,27 @@ class GnssScanner(
               hasAlmanac = status.hasAlmanacData(i),
               carrierHz = if (status.hasCarrierFrequencyHz(i)) status.getCarrierFrequencyHz(i) else null
             )
-          )
-        }
+          }
 
         val measurementsUnsupported =
           runCatching { lm?.gnssCapabilities?.hasMeasurements() == false }.getOrDefault(false)
         val rateUnavailable =
           measurementsUnsupported || (!driftSeen && syncedNoDriftEpochs >= SYNCED_NO_DRIFT_EPOCHS)
-        val groups = raw.groupBy { it.constellation to it.svid }
         val merged =
-          groups.values.map { group ->
+          raw.groupBy { it.constellation to it.svid }.values.map { group ->
             val bandsByCn0 = group.sortedByDescending { it.cn0DbHz }
             val bestBand = bandsByCn0.first()
 
             val phoneLoc = lastLocation
             val subPoint =
               phoneLoc?.let {
-                val satAlt =
-                  CelestialGeometry.orbitalAltitudeM(
-                    bestBand.constellation,
-                    bestBand.svid
-                  )
                 CelestialGeometry.compute(
                   phoneLatDeg = it.latitude,
                   phoneLonDeg = it.longitude,
                   phoneAltM = if (it.hasAltitude()) it.altitude else 0.0,
                   satElevationDeg = bestBand.elevationDeg,
                   satAzimuthDeg = bestBand.azimuthDeg,
-                  satAltitudeAboveEarthM = satAlt
+                  satAltitudeAboveEarthM = CelestialGeometry.orbitalAltitudeM(bestBand.constellation, bestBand.svid)
                 )
               }
 
@@ -146,24 +133,9 @@ class GnssScanner(
                   }
                 add(DetailEntry("Range rate", rateText))
                 if (subPoint != null) {
-                  add(
-                    DetailEntry(
-                      "Position",
-                      "${formatLat(subPoint.latDeg)}, ${formatLon(subPoint.lonDeg)}"
-                    )
-                  )
-                  add(
-                    DetailEntry(
-                      "Slant range",
-                      "${"%.0f".format(subPoint.slantRangeM / 1000.0)} km"
-                    )
-                  )
-                  add(
-                    DetailEntry(
-                      "Orbital altitude",
-                      "${"%.0f".format(subPoint.altitudeAboveEarthM / 1000.0)} km"
-                    )
-                  )
+                  add(DetailEntry("Position", "${formatDeg(subPoint.latDeg, 'N', 'S')}, ${formatDeg(subPoint.lonDeg, 'E', 'W')}"))
+                  add(DetailEntry("Slant range", "${"%.0f".format(subPoint.slantRangeM / 1000.0)} km"))
+                  add(DetailEntry("Orbital altitude", "${"%.0f".format(subPoint.altitudeAboveEarthM / 1000.0)} km"))
                 } else if (phoneLoc == null) {
                   add(DetailEntry("Position", "Pending"))
                 }
@@ -206,9 +178,8 @@ class GnssScanner(
         val driftMps = clock.driftNanosPerSecond * 1e-9 * SPEED_OF_LIGHT_MPS
         val now = SystemClock.elapsedRealtime()
         for (m in event.measurements) {
-          val geometric = m.pseudorangeRateMetersPerSecond - driftMps
           rangeRates[GnssBands.constellationFor(m.constellationType) to m.svid] =
-            RangeReading(geometric.toFloat(), now)
+            RangeReading((m.pseudorangeRateMetersPerSecond - driftMps).toFloat(), now)
         }
       }
     }
@@ -226,29 +197,19 @@ class GnssScanner(
   @SuppressLint("MissingPermission")
   fun start(scope: CoroutineScope) {
     if (!registered && hasPermission()) {
-      val lm = lm
-      if (lm != null) {
-        runCatching {
+      lm
+        ?.runCatching {
           val request =
             LocationRequest
               .Builder(GPS_INTERVAL_MS)
               .setMinUpdateDistanceMeters(0f)
               .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
               .build()
-          lm.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            request,
-            callbackExecutor,
-            locationListener
-          )
-          lm.registerGnssStatusCallback(callbackExecutor, callback)
-          lm.registerGnssMeasurementsCallback(callbackExecutor, measurementsCallback)
-        }.onSuccess {
-          registered = true
-        }.onFailure {
-          Log.w(TAG, "Failed to engage GPS", it)
-        }
-      }
+          requestLocationUpdates(LocationManager.GPS_PROVIDER, request, callbackExecutor, locationListener)
+          registerGnssStatusCallback(callbackExecutor, callback)
+          registerGnssMeasurementsCallback(callbackExecutor, measurementsCallback)
+        }?.onSuccess { registered = true }
+        ?.onFailure { Log.w(TAG, "Failed to engage GPS", it) }
     }
     if (heartbeatJob?.isActive != true) {
       heartbeatJob = scope.repeatEvery(GNSS_HEARTBEAT_MS) { publishNow() }
@@ -257,10 +218,10 @@ class GnssScanner(
   }
 
   fun stop() {
-    runCatching {
-      lm?.unregisterGnssStatusCallback(callback)
-      lm?.unregisterGnssMeasurementsCallback(measurementsCallback)
-      lm?.removeUpdates(locationListener)
+    lm?.runCatching {
+      unregisterGnssStatusCallback(callback)
+      unregisterGnssMeasurementsCallback(measurementsCallback)
+      removeUpdates(locationListener)
     }
     rangeRates.clear()
     driftSeen = false
@@ -271,25 +232,15 @@ class GnssScanner(
   private fun publishNow() {
     val status = status()
     val signals = if (status == ScannerStatus.OK) lastSatellites else emptyList()
-    val now = SystemClock.elapsedRealtime()
-    val ready = readiness.compute(status == ScannerStatus.OK, signals.isNotEmpty(), now)
-    _state.value =
-      GnssSourceState(
-        signals = signals,
-        status = status,
-        ready = ready
-      )
+    val ready = readiness.compute(status == ScannerStatus.OK, signals.isNotEmpty(), SystemClock.elapsedRealtime())
+    _state.value = GnssSourceState(signals, status, ready)
   }
 
-  private fun formatLat(deg: Double): String {
-    val hemi = if (deg >= 0.0) "N" else "S"
-    return "${"%.2f".format(abs(deg))}°$hemi"
-  }
-
-  private fun formatLon(deg: Double): String {
-    val hemi = if (deg >= 0.0) "E" else "W"
-    return "${"%.2f".format(abs(deg))}°$hemi"
-  }
+  private fun formatDeg(
+    deg: Double,
+    pos: Char,
+    neg: Char
+  ): String = "${"%.2f".format(abs(deg))}°${if (deg >= 0.0) pos else neg}"
 
   private companion object {
     const val GPS_INTERVAL_MS = 2_000L

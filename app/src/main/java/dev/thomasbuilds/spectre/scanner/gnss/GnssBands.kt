@@ -17,82 +17,22 @@ internal object GnssBands {
       else -> Constellation.UNKNOWN
     }
 
+  private const val TOLERANCE_MHZ = 10.0
+
+  // List order is match precedence where tolerance windows overlap (E5b before E5).
+  private val bands =
+    mapOf(
+      Constellation.GPS to listOf(1575.42 to "L1", 1227.6 to "L2", 1176.45 to "L5"),
+      Constellation.GALILEO to listOf(1575.42 to "E1", 1278.75 to "E6", 1207.14 to "E5b", 1191.795 to "E5", 1176.45 to "E5a"),
+      Constellation.GLONASS to listOf(1602.0 to "L1", 1246.0 to "L2", 1202.025 to "L3"),
+      Constellation.BEIDOU to listOf(1561.098 to "B1I", 1575.42 to "B1C", 1268.52 to "B3", 1207.14 to "B2b", 1176.45 to "B2a"),
+      Constellation.QZSS to listOf(1575.42 to "L1", 1227.6 to "L2", 1278.75 to "L6", 1176.45 to "L5"),
+      Constellation.IRNSS to listOf(1575.42 to "L1", 1176.45 to "L5", 2492.028 to "S"),
+      Constellation.SBAS to listOf(1575.42 to "L1", 1176.45 to "L5")
+    )
+
   fun bandName(
     constellation: Constellation,
     freqHz: Float
-  ): String? {
-    fun near(target: Double): Boolean = abs(freqHz - target) < 10_000_000.0
-    return when (constellation) {
-      Constellation.GPS -> {
-        when {
-          near(1_575_420_000.0) -> "L1"
-          near(1_227_600_000.0) -> "L2"
-          near(1_176_450_000.0) -> "L5"
-          else -> null
-        }
-      }
-
-      Constellation.GALILEO -> {
-        when {
-          near(1_575_420_000.0) -> "E1"
-          near(1_278_750_000.0) -> "E6"
-          near(1_207_140_000.0) -> "E5b"
-          near(1_191_795_000.0) -> "E5"
-          near(1_176_450_000.0) -> "E5a"
-          else -> null
-        }
-      }
-
-      Constellation.GLONASS -> {
-        when {
-          near(1_602_000_000.0) -> "L1"
-          near(1_246_000_000.0) -> "L2"
-          near(1_202_025_000.0) -> "L3"
-          else -> null
-        }
-      }
-
-      Constellation.BEIDOU -> {
-        when {
-          near(1_561_098_000.0) -> "B1I"
-          near(1_575_420_000.0) -> "B1C"
-          near(1_268_520_000.0) -> "B3"
-          near(1_207_140_000.0) -> "B2b"
-          near(1_176_450_000.0) -> "B2a"
-          else -> null
-        }
-      }
-
-      Constellation.QZSS -> {
-        when {
-          near(1_575_420_000.0) -> "L1"
-          near(1_227_600_000.0) -> "L2"
-          near(1_278_750_000.0) -> "L6"
-          near(1_176_450_000.0) -> "L5"
-          else -> null
-        }
-      }
-
-      Constellation.IRNSS -> {
-        when {
-          near(1_575_420_000.0) -> "L1"
-          near(1_176_450_000.0) -> "L5"
-          near(2_492_028_000.0) -> "S"
-          else -> null
-        }
-      }
-
-      Constellation.SBAS -> {
-        when {
-          near(1_575_420_000.0) -> "L1"
-          near(1_176_450_000.0) -> "L5"
-          else -> null
-        }
-      }
-
-      else -> {
-        null
-      }
-    }
-  }
+  ): String? = bands[constellation]?.firstOrNull { (mhz, _) -> abs(freqHz / 1e6 - mhz) < TOLERANCE_MHZ }?.second
 }
