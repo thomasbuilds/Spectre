@@ -58,6 +58,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          tools: linked
 
       # build-mode: none does not extract Kotlin, so the java-kotlin database is
       # built by tracing a real compile. --no-daemon keeps the compiler in the
