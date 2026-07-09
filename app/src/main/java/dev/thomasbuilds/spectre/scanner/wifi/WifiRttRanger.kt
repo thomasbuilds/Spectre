@@ -90,7 +90,8 @@ class WifiRttRanger(
               if (r.status == RangingResult.STATUS_SUCCESS) {
                 cache[mac] =
                   FtmReading(
-                    distanceM = r.distanceMm / 1000.0,
+                    // Measurement noise can put a very close peer a few cm "behind" the phone.
+                    distanceM = (r.distanceMm / 1000.0).coerceAtLeast(0.0),
                     timestampMs = now
                   )
               }

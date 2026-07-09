@@ -3,18 +3,47 @@ package dev.thomasbuilds.spectre.scanner.wifi
 import dev.thomasbuilds.spectre.model.WifiSecurity
 
 internal object WifiCapabilities {
+  // Parses per bracket group ("[RSN-PSK+SAE-CCMP-128]", "[WPA2-EAP/SHA1-CCMP]", ...) and keys the
+  // WPA2 badge on the group's PSK/EAP AKMs: the WPA2/RSN prefix alone also fronts WPA3-only (SAE)
+  // and OWE groups, which are not WPA2.
   fun parseSecurityTypes(capabilities: String?): Set<WifiSecurity> {
-    val caps = capabilities.orEmpty()
-    val types = linkedSetOf<WifiSecurity>()
-    if ("WPA3" in caps || "SAE" in caps) types += WifiSecurity.WPA3
-    if ("WPA2" in caps || "RSN" in caps) types += WifiSecurity.WPA2
-    if ("WPA-" in caps || "WPA/" in caps || "WPA]" in caps) types += WifiSecurity.WPA
-    if ("PSK" in caps) types += WifiSecurity.PSK
-    if ("EAP" in caps) types += WifiSecurity.EAP
-    if ("OWE" in caps) types += WifiSecurity.OWE
-    if ("WEP" in caps) types += WifiSecurity.WEP
-    if (types.isEmpty() && caps.contains("[ESS]")) types += WifiSecurity.OPEN
-    return types
+    val types = mutableSetOf<WifiSecurity>()
+    var ess = false
+    for (group in capabilities.orEmpty().split('[', ']')) {
+      when {
+        group.isBlank() -> Unit
+        group == "ESS" -> ess = true
+        group.startsWith("WPA-") -> {
+          types += WifiSecurity.WPA
+          if ("PSK" in group) types += WifiSecurity.PSK
+          if ("EAP" in group) types += WifiSecurity.EAP
+        }
+
+        group.startsWith("WPA2") || group.startsWith("WPA3") || group.startsWith("RSN") -> {
+          val suiteB = "SUITE_B_192" in group
+          val wpa3 = "SAE" in group || suiteB || group.startsWith("WPA3")
+          val owe = "OWE" in group
+          val psk = "PSK" in group
+          val eap = "EAP" in group
+          if (wpa3) types += WifiSecurity.WPA3
+          if (owe) types += WifiSecurity.OWE
+          if (psk) {
+            types += WifiSecurity.WPA2
+            types += WifiSecurity.PSK
+          }
+          if (eap) {
+            if (!suiteB) types += WifiSecurity.WPA2
+            types += WifiSecurity.EAP
+          }
+          // A recognized RSN group with an unrecognized AKM still isn't open.
+          if (!wpa3 && !owe && !psk && !eap) types += WifiSecurity.WPA2
+        }
+
+        group.startsWith("WEP") -> types += WifiSecurity.WEP
+      }
+    }
+    if (types.isEmpty() && ess) types += WifiSecurity.OPEN
+    return types.sortedBy(WifiSecurity::ordinal).toCollection(linkedSetOf())
   }
 
   fun securityLabel(capabilities: String?): String {

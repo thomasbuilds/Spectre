@@ -215,6 +215,7 @@ class GnssScanner(
     publishNow()
   }
 
+  @Synchronized
   @SuppressLint("MissingPermission")
   private fun maybeRegister() {
     if (stopped || registered || !hasPermission()) return
@@ -234,6 +235,8 @@ class GnssScanner(
       ?.onFailure { Log.w(TAG, "Failed to engage GPS", it) }
   }
 
+  // Synchronized with maybeRegister so an in-flight registration can't complete after teardown.
+  @Synchronized
   fun stop() {
     stopped = true
     lm?.runCatching {

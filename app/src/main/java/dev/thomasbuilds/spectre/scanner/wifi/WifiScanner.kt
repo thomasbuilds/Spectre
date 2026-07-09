@@ -26,6 +26,7 @@ import dev.thomasbuilds.spectre.scanner.daemonExecutor
 import dev.thomasbuilds.spectre.scanner.repeatEvery
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -59,6 +60,8 @@ class WifiScanner(
     val lastScanTimestampMicros: Long
   )
 
+  // Mutated only on callbackExecutor (scan callbacks, heartbeat, registration seed), so the
+  // read-modify-writes in ingest and publishNow are single-writer.
   private val apCache = ConcurrentHashMap<String, ApState>()
 
   private val scanGeneration = AtomicInteger(0)
@@ -71,6 +74,7 @@ class WifiScanner(
   private var heartbeatJob: Job? = null
 
   private val callbackExecutor = daemonExecutor("spectre-wifi")
+  private val serialDispatcher = callbackExecutor.asCoroutineDispatcher()
 
   private val scanCallback =
     object : WifiManager.ScanResultsCallback() {
@@ -117,7 +121,6 @@ class WifiScanner(
   }
 
   fun start(scope: CoroutineScope) {
-    maybeRegister()
     if (scanLoopJob?.isActive != true) {
       scanLoopJob =
         scope.launch {
@@ -129,21 +132,25 @@ class WifiScanner(
                 WIFI_PROBE_INTERVAL_UNTHROTTLED_MS
               }
             delay(interval)
-            if (status() == ScannerStatus.OK) startScan()
+            if (!stopped && status() == ScannerStatus.OK) startScan()
           }
         }
     }
     if (heartbeatJob?.isActive != true) {
       // Also retries registration, a permission granted after service start never re-invokes start().
       heartbeatJob =
-        scope.repeatEvery(WIFI_HEARTBEAT_MS) {
+        scope.repeatEvery(WIFI_HEARTBEAT_MS, serialDispatcher) {
           maybeRegister()
           publishNow()
         }
     }
-    publishNow()
+    callbackExecutor.execute {
+      maybeRegister()
+      publishNow()
+    }
   }
 
+  @Synchronized
   private fun maybeRegister() {
     if (stopped || !hasPermission()) return
     val w = wifi ?: return
@@ -163,6 +170,8 @@ class WifiScanner(
     }
   }
 
+  // Synchronized with maybeRegister so an in-flight registration can't complete after teardown.
+  @Synchronized
   fun stop() {
     stopped = true
     if (registered) {
