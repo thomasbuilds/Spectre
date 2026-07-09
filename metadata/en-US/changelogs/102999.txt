@@ -1,0 +1,5 @@
+• Cellular: correct channel frequencies (incl. 3G), all neighbor cells, dual-SIM
+• Wi-Fi: accurate WPA3/OWE labels, Wi-Fi 7 (320 MHz) and 6 GHz, cipher/vendor info, vendor filter
+• Bluetooth: extended BLE scanning, address-type filter, fuller device names, steadier GATT inspector
+• GNSS: fixed BeiDou orbit; range-rate, ephemeris and almanac; per-satellite view
+• Local network scan (renamed) with Android 17 support
