@@ -95,6 +95,7 @@ class GattInspector(
     }
 
     session?.cancelled = true
+    pendingWrite = null
     mainHandler.removeCallbacksAndMessages(null)
     runCatching {
       gatt?.disconnect()
@@ -179,8 +180,7 @@ class GattInspector(
           value: ByteArray,
           status: Int
         ) {
-          val uuid = characteristic.uuid.toString()
-          mainHandler.post { s.onRead(uuid, value, status) }
+          mainHandler.post { s.onRead(characteristic, value, status) }
         }
 
         @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
@@ -189,9 +189,8 @@ class GattInspector(
           characteristic: BluetoothGattCharacteristic,
           status: Int
         ) {
-          val uuid = characteristic.uuid.toString()
           val value = characteristic.value ?: ByteArray(0)
-          mainHandler.post { s.onRead(uuid, value, status) }
+          mainHandler.post { s.onRead(characteristic, value, status) }
         }
 
         override fun onCharacteristicWrite(
@@ -344,7 +343,9 @@ class GattInspector(
     private var connectTimeoutToken: Runnable? = null
     private var services: List<BluetoothGattService> = emptyList()
     private val queue = ArrayDeque<BluetoothGattCharacteristic>()
-    private val values = mutableMapOf<String, String>()
+
+    // Keyed by instance (identity), so same-UUID characteristics keep distinct values.
+    private val values = mutableMapOf<BluetoothGattCharacteristic, String>()
     private var totalReads = 0
     private val doneReads get() = totalReads - queue.size
     private var timeoutToken: Runnable? = null
@@ -381,36 +382,35 @@ class GattInspector(
         mainHandler.post { readNext() }
         return
       }
-      armTimeout(next.uuid.toString())
+      armTimeout(next)
     }
 
     fun onRead(
-      uuid: String,
+      characteristic: BluetoothGattCharacteristic,
       value: ByteArray,
       status: Int
     ) {
       if (cancelled || completed) return
+      val expected = queue.firstOrNull() ?: return
+      // A late response for an already-timed-out read must not disarm the in-flight read's timeout.
+      if (expected !== characteristic && expected.uuid != characteristic.uuid) return
       disarmTimeout()
-      if (queue.isEmpty()) return
-      val expected = queue.first().uuid.toString()
-      if (expected != uuid) return
       queue.removeFirst()
       if (status == BluetoothGatt.GATT_SUCCESS) {
-        val decoded =
-          runCatching { GattValueDecoder.decode(uuid, value) }
+        values[characteristic] =
+          runCatching { GattValueDecoder.decode(characteristic.uuid.toString(), value) }
             .getOrElse { bytesToHex(value) }
-        values[uuid] = decoded
       }
       deliver(GattInspection.ReadingValues(doneReads, totalReads))
       mainHandler.post { readNext() }
     }
 
-    private fun armTimeout(uuid: String) {
+    private fun armTimeout(characteristic: BluetoothGattCharacteristic) {
       disarmTimeout()
       val token =
         Runnable {
           if (completed || cancelled) return@Runnable
-          if (queue.isNotEmpty() && queue.first().uuid.toString() == uuid) {
+          if (queue.firstOrNull() === characteristic) {
             queue.removeFirst()
             deliver(GattInspection.ReadingValues(doneReads, totalReads))
             readNext()
@@ -484,14 +484,14 @@ class GattInspector(
     }
   }
 
-  private fun BluetoothGattService.toInfo(values: Map<String, String>): GattServiceInfo =
+  private fun BluetoothGattService.toInfo(values: Map<BluetoothGattCharacteristic, String>): GattServiceInfo =
     GattServiceInfo(
       uuid = uuid.toString(),
       label = KnownGattUuids.serviceName(uuid.toString()),
       characteristics = characteristics.map { it.toInfo(values) }
     )
 
-  private fun BluetoothGattCharacteristic.toInfo(values: Map<String, String>): GattCharacteristicInfo {
+  private fun BluetoothGattCharacteristic.toInfo(values: Map<BluetoothGattCharacteristic, String>): GattCharacteristicInfo {
     val props =
       buildList {
         val p = properties
@@ -508,7 +508,7 @@ class GattInspector(
       uuid = uuid.toString(),
       label = KnownGattUuids.characteristicName(uuid.toString()),
       properties = props,
-      readValue = values[uuid.toString()]
+      readValue = values[this]
     )
   }
 

@@ -62,6 +62,7 @@ class BluetoothScanner(
     val mac: String,
     val name: String,
     val latestResult: ScanResult,
+    val advHash: Int,
     val smoothedRssi: Double,
     val sampleCount: Int,
     val firstSeenMs: Long,
@@ -73,6 +74,7 @@ class BluetoothScanner(
 
   private data class SignalCacheKey(
     val name: String,
+    val advHash: Int,
     val smoothedRssiInt: Int,
     val seenConnectable: Boolean,
     val seenNonConnectable: Boolean,
@@ -103,6 +105,10 @@ class BluetoothScanner(
       extraBufferCapacity = 1,
       onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
+
+  // One serial lane for all scheduled work, so publishNow never runs concurrently with itself.
+  @OptIn(ExperimentalCoroutinesApi::class)
+  private val serialLane = Dispatchers.Default.limitedParallelism(1)
   private var publishJob: Job? = null
   private var heartbeatJob: Job? = null
   private var watchdogJob: Job? = null
@@ -170,6 +176,7 @@ class BluetoothScanner(
         mac = mac,
         name = name,
         latestResult = result,
+        advHash = result.scanRecord?.bytes?.contentHashCode() ?: 0,
         smoothedRssi = smoothedRssi,
         sampleCount = sampleCount,
         firstSeenMs = previous?.firstSeenMs ?: now,
@@ -307,7 +314,10 @@ class BluetoothScanner(
     )
   }
 
-  fun hasPermission(): Boolean = context.hasPermission(Manifest.permission.BLUETOOTH_SCAN)
+  // BLUETOOTH_SCAN is declared without neverForLocation, so results also require fine location.
+  fun hasPermission(): Boolean =
+    context.hasPermission(Manifest.permission.BLUETOOTH_SCAN) &&
+      context.hasPermission(Manifest.permission.ACCESS_FINE_LOCATION)
 
   fun status(): ScannerStatus {
     if (!hasPermission()) return ScannerStatus.NO_PERMISSION
@@ -316,31 +326,30 @@ class BluetoothScanner(
     return ScannerStatus.OK
   }
 
-  @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+  @OptIn(FlowPreview::class)
   fun start(scope: CoroutineScope) {
     startScan()
     if (publishJob?.isActive != true) {
       publishJob =
-        scope.launch(Dispatchers.Default.limitedParallelism(1)) {
+        scope.launch(serialLane) {
           publishTrigger.debounce(BT_PUBLISH_DEBOUNCE_MS).collect { publishNow() }
         }
     }
     if (heartbeatJob?.isActive != true) {
-      heartbeatJob =
-        scope.repeatEvery(BT_HEARTBEAT_MS, Dispatchers.Default.limitedParallelism(1)) { publishNow() }
+      heartbeatJob = scope.repeatEvery(BT_HEARTBEAT_MS, serialLane) { publishNow() }
     }
     if (watchdogJob?.isActive != true) {
       watchdogJob =
-        scope.repeatEvery(BT_WATCHDOG_MS, Dispatchers.Default.limitedParallelism(1)) {
+        scope.repeatEvery(BT_WATCHDOG_MS, serialLane) {
           if (status() == ScannerStatus.OK) startScan()
         }
     }
     publishNow()
   }
 
-  // The publish, heartbeat, and watchdog jobs each run on their own single-thread dispatcher,
-  // so without synchronization the check-then-set on `scanning` could race and start the
-  // scanner twice with the same callback, which fails with ALREADY_STARTED.
+  // Scan-state transitions are reached from the serial lane, start() on the caller's thread, and
+  // binder callbacks (onScanFailed), so the check-then-set on `scanning` needs synchronization to
+  // not start the scanner twice with the same callback, which fails with ALREADY_STARTED.
   @Synchronized
   @SuppressLint("MissingPermission")
   private fun startScan() {
@@ -435,16 +444,17 @@ class BluetoothScanner(
     }
     enforceSizeCap()
     val now = SystemClock.elapsedRealtime()
-    val bonded = bondedMacs()
     val signals =
       if (status != ScannerStatus.OK) {
         emptyList()
       } else {
+        val bonded = bondedMacs()
         deviceCache.values.sortedBy { it.mac }.map { dev ->
           val isStale = now - dev.lastSeenMs > STALE_TTL_MS
           val key =
             SignalCacheKey(
               name = dev.name,
+              advHash = dev.advHash,
               smoothedRssiInt = dev.smoothedRssi.toInt(),
               seenConnectable = dev.seenConnectable,
               seenNonConnectable = dev.seenNonConnectable,

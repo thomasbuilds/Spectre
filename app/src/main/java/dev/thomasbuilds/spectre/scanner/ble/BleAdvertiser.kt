@@ -24,7 +24,7 @@ class BleAdvertiser(
 
   fun hasPermission(): Boolean = context.hasPermission(Manifest.permission.BLUETOOTH_ADVERTISE)
 
-  fun isSupported(): Boolean = adapter?.isMultipleAdvertisementSupported == true
+  fun isSupported(): Boolean = adapter?.bluetoothLeAdvertiser != null
 
   fun startIBeacon(
     uuid: UUID,
@@ -53,7 +53,7 @@ class BleAdvertiser(
       return
     }
     val adv = a.bluetoothLeAdvertiser
-    if (adv == null || !isSupported()) {
+    if (adv == null) {
       onResult(false, "This device can't BLE-advertise")
       return
     }

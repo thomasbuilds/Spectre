@@ -6,34 +6,32 @@ object GattValueDecoder {
     bytes: ByteArray
   ): String {
     if (bytes.isEmpty()) return "(empty)"
-    val short = shortUuidCode(uuid)
-    return when (short) {
+    return when (shortUuidCode(uuid)) {
       "2a00" -> bytes.asUtf8()
-      "2a01" -> appearance(bytes.uint16le())
+      "2a01" if bytes.size >= 2 -> appearance(bytes.uint16le())
       "2a04" -> connectionParams(bytes)
-      "2a05" -> bytes.toHex()
+      "2a05", "2a23" -> bytes.toHex()
       "2aa6" -> if (bytes[0].toInt() == 0) "Not supported" else "Supported"
-      "2a23" -> bytes.toHex()
       "2a24", "2a25", "2a26", "2a27", "2a28", "2a29", "2a2a" -> bytes.asUtf8()
-      "2a19" -> "${bytes[0].toInt() and 0xff}%"
+      "2a07" -> "${bytes[0].toInt()} dBm"
+      "2a19", "2af9" -> "${bytes[0].toInt() and 0xff}%"
       "2a37" -> heartRate(bytes)
       "2a38" -> bodySensorLocation(bytes[0].toInt() and 0xff)
-      "2a6d" -> if (bytes.size >= 4) "${bytes.uint32le() / 10.0} Pa" else bytes.toHex()
-      "2a6e" -> if (bytes.size >= 2) "${bytes.int16le() / 100.0} °C" else bytes.toHex()
-      "2a6f" -> if (bytes.size >= 2) "${bytes.uint16le() / 100.0} %RH" else bytes.toHex()
-      "2af9" -> "${bytes[0].toInt() and 0xff}%"
+      "2a6d" if bytes.size >= 4 -> "${bytes.uint32le() / 10.0} Pa"
+      "2a6e" if bytes.size >= 2 -> "${bytes.int16le() / 100.0} °C"
+      "2a6f" if bytes.size >= 2 -> "${bytes.uint16le() / 100.0} %RH"
       else -> bytes.preview()
     }
   }
 
-  private fun ByteArray.asUtf8(): String {
-    val s = toString(Charsets.UTF_8).trimEnd(' ').trim()
-    return s.ifEmpty { preview() }
-  }
+  // Devices commonly NUL-pad fixed-size string characteristics.
+  private fun ByteArray.asTrimmedString(): String = toString(Charsets.UTF_8).trim { it.isWhitespace() || it == '\u0000' }
+
+  private fun ByteArray.asUtf8(): String = asTrimmedString().ifEmpty { preview() }
 
   private fun ByteArray.preview(): String {
     if (looksLikeUtf8()) {
-      val s = toString(Charsets.UTF_8).trimEnd(' ').trim()
+      val s = asTrimmedString()
       if (s.isNotEmpty()) return s
     }
     return toHex()
