@@ -11,8 +11,14 @@ internal object WifiCapabilities {
     var ess = false
     for (group in capabilities.orEmpty().split('[', ']')) {
       when {
-        group.isBlank() -> Unit
-        group == "ESS" -> ess = true
+        group.isBlank() -> {
+          Unit
+        }
+
+        group == "ESS" -> {
+          ess = true
+        }
+
         group.startsWith("WPA-") -> {
           types += WifiSecurity.WPA
           if ("PSK" in group) types += WifiSecurity.PSK
@@ -39,7 +45,9 @@ internal object WifiCapabilities {
           if (!wpa3 && !owe && !psk && !eap) types += WifiSecurity.WPA2
         }
 
-        group.startsWith("WEP") -> types += WifiSecurity.WEP
+        group.startsWith("WEP") -> {
+          types += WifiSecurity.WEP
+        }
       }
     }
     if (types.isEmpty() && ess) types += WifiSecurity.OPEN
