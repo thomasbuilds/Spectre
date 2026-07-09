@@ -13,9 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -23,7 +22,7 @@ import androidx.compose.ui.unit.dp
 fun SkeletonBar(
   width: Dp,
   height: Dp,
-  alpha: Float,
+  alpha: State<Float>,
   cornerRadius: Dp = 4.dp
 ) {
   Box(
@@ -31,7 +30,8 @@ fun SkeletonBar(
       Modifier
         .width(width)
         .height(height)
-        .alpha(alpha)
+        // Read the animated alpha in the draw phase so the shimmer never recomposes anything.
+        .graphicsLayer { this.alpha = alpha.value }
         .background(
           MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
           RoundedCornerShape(cornerRadius)

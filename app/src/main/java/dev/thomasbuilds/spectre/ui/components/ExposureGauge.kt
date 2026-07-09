@@ -101,7 +101,7 @@ fun ExposureGauge(
       )
     } else {
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        val skeletonAlpha by rememberSkeletonAlpha()
+        val skeletonAlpha = rememberSkeletonAlpha()
         SkeletonBar(width = 96.dp, height = 56.dp, alpha = skeletonAlpha, cornerRadius = 8.dp)
         Spacer(Modifier.height(6.dp))
         SkeletonBar(width = 48.dp, height = 18.dp, alpha = skeletonAlpha)

@@ -17,7 +17,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -112,7 +111,7 @@ fun SignalCard(
 
 @Composable
 private fun WarmingUpRow() {
-  val alpha by rememberSkeletonAlpha()
+  val alpha = rememberSkeletonAlpha()
   Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
     SkeletonBar(width = 90.dp, height = 18.dp, alpha = alpha)
     SkeletonBar(width = 130.dp, height = 12.dp, alpha = alpha)
