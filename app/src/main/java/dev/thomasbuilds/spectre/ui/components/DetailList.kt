@@ -364,9 +364,7 @@ private fun DetailCardHeader(
           }
         }
 
-        else -> {
-          Unit
-        }
+        else -> {}
       }
     }
     if (source == SignalSource.CELLULAR && state.cellularConnection != null) {

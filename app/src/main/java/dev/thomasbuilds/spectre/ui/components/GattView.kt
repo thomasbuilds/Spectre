@@ -165,9 +165,7 @@ internal fun BluetoothExpandable(
               }
             }
 
-            else -> {
-              Unit
-            }
+            else -> {}
           }
         }
         val done = inspection as? GattInspection.Done

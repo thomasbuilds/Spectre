@@ -9,12 +9,8 @@ internal object WifiCapabilities {
   fun parseSecurityTypes(capabilities: String?): Set<WifiSecurity> {
     val types = mutableSetOf<WifiSecurity>()
     var ess = false
-    for (group in capabilities.orEmpty().split('[', ']')) {
+    for (group in capabilities.orEmpty().split('[', ']').filter(String::isNotBlank)) {
       when {
-        group.isBlank() -> {
-          Unit
-        }
-
         group == "ESS" -> {
           ess = true
         }

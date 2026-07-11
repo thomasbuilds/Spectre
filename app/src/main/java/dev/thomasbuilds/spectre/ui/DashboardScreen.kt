@@ -179,9 +179,7 @@ fun DashboardScreen(
         showLocationDialog = true
       }
 
-      ScannerStatus.NO_SIM -> {
-        Unit
-      }
+      ScannerStatus.NO_SIM -> {}
     }
   }
 
