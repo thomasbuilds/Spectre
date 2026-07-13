@@ -6,8 +6,10 @@
 
 **Minimum supported version: Android 12 (API 31)**
 
-1. Download the APK from the [GitHub release](https://github.com/thomasbuilds/Spectre/releases/latest).
-2. Optionally verify the APK's signing certificate against the [CERT.sha256](CERT.sha256) fingerprint on the release.
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/dev.thomasbuilds.spectre)
+
+1. Download the APK from the [GitHub release](https://github.com/thomasbuilds/Spectre/releases/latest) or on [F-Droid](https://f-droid.org/packages/dev.thomasbuilds.spectre)
+2. Optionally verify the APK's signing certificate against the [CERT.sha256](CERT.sha256) fingerprint.
 3. Open the file on your phone and allow installation from unknown sources when Android prompts you.
 4. Launch Spectre and grant the permissions it requests.
 
