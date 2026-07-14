@@ -6,12 +6,11 @@
 
 **Minimum supported version: Android 12 (API 31)**
 
+[<img src="https://raw.githubusercontent.com/machiav3lli/oandbackupx/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png" alt="Get it on GitHub" height="80">](https://github.com/thomasbuilds/Spectre/releases/latest)
 [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/dev.thomasbuilds.spectre)
+[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="80">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/thomasbuilds/Spectre)
 
-1. Download the APK from the [GitHub release](https://github.com/thomasbuilds/Spectre/releases/latest) or on [F-Droid](https://f-droid.org/packages/dev.thomasbuilds.spectre)
-2. Optionally verify the APK's signing certificate against the [CERT.sha256](CERT.sha256) fingerprint.
-3. Open the file on your phone and allow installation from unknown sources when Android prompts you.
-4. Launch Spectre and grant the permissions it requests.
+It's good practice to verify the APK's signing certificate against the [CERT.sha256](CERT.sha256) fingerprint before installing. Once Spectre is installed, grant the permissions it requests - they power the scanners and nothing else. The app has no ads, trackers, or analytics.
 
 ## Features
 
