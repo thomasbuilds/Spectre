@@ -86,6 +86,8 @@ class GnssScanner(
     object : GnssStatus.Callback() {
       override fun onSatelliteStatusChanged(status: GnssStatus) {
         val now = SystemClock.elapsedRealtime()
+        // The HAL also lists satellites it is merely searching for, reporting C/N0 as 0 with no
+        // flag to tell them apart. Only tracked satellites are received signals; keep those.
         val raw =
           List(status.satelliteCount) { i ->
             RawSatelliteEntry(
@@ -100,7 +102,7 @@ class GnssScanner(
               hasAlmanac = status.hasAlmanacData(i),
               carrierHz = if (status.hasCarrierFrequencyHz(i)) status.getCarrierFrequencyHz(i) else null
             )
-          }
+          }.filter { it.cn0DbHz > 0f || it.usedInFix }
 
         val rateUnavailable =
           !measurementsSupported || (!driftSeen && syncedNoDriftEpochs >= SYNCED_NO_DRIFT_EPOCHS)
@@ -109,9 +111,12 @@ class GnssScanner(
             val bandsByCn0 = group.sortedByDescending { it.cn0DbHz }
             val bestBand = bandsByCn0.first()
 
+            // Elevation/azimuth stay at 0 until the receiver knows the orbit; exactly (0°, 0°)
+            // from a live satellite means "not computed yet", not a bearing.
+            val geometryKnown = bestBand.elevationDeg != 0f || bestBand.azimuthDeg != 0f
             val phoneLoc = lastLocation
             val subPoint =
-              phoneLoc?.let {
+              phoneLoc?.takeIf { geometryKnown }?.let {
                 CelestialGeometry.compute(
                   phoneLatDeg = it.latitude,
                   phoneLonDeg = it.longitude,
@@ -125,8 +130,8 @@ class GnssScanner(
             val details =
               buildList {
                 add(DetailEntry("Constellation", bestBand.constellation.label))
-                add(DetailEntry("Elevation", "${"%.1f".format(bestBand.elevationDeg)}°"))
-                add(DetailEntry("Azimuth", "${"%.1f".format(bestBand.azimuthDeg)}°"))
+                add(DetailEntry("Elevation", if (geometryKnown) "${"%.1f".format(bestBand.elevationDeg)}°" else "Unknown"))
+                add(DetailEntry("Azimuth", if (geometryKnown) "${"%.1f".format(bestBand.azimuthDeg)}°" else "Unknown"))
                 val rateText =
                   if (rateUnavailable) {
                     "Unavailable"
@@ -144,7 +149,13 @@ class GnssScanner(
                   add(DetailEntry("Slant range", "${"%.0f".format(subPoint.slantRangeM / 1000.0)} km"))
                   add(DetailEntry("Orbital altitude", "${"%.0f".format(subPoint.altitudeAboveEarthM / 1000.0)} km"))
                 } else {
-                  add(DetailEntry("Position", if (phoneLoc == null) "Pending" else "Below horizon"))
+                  val positionText =
+                    when {
+                      !geometryKnown -> "Unknown"
+                      phoneLoc == null -> "Pending"
+                      else -> "Below horizon"
+                    }
+                  add(DetailEntry("Position", positionText))
                 }
                 add(DetailEntry("Ephemeris data", if (bestBand.hasEphemeris) "Yes" else "No"))
                 add(DetailEntry("Almanac data", if (bestBand.hasAlmanac) "Yes" else "No"))
