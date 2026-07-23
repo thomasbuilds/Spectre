@@ -358,10 +358,16 @@ class RFMonitorService : Service() {
       .Builder(this, channelId)
       .setSmallIcon(R.drawable.ic_notification)
       .setContentTitle(title)
-      .setContentText("Swipe to close app")
       .setContentIntent(pi)
       .setDeleteIntent(shutdownPi)
-      .setOngoing(false)
+      .apply {
+        // The notification can't be swiped away before Android 13
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+          setContentText("Swipe to close app")
+        } else {
+          addAction(0, "Stop measuring", shutdownPi)
+        }
+      }.setOngoing(false)
       .setShowWhen(false)
       .setPriority(NotificationCompat.PRIORITY_DEFAULT)
       .setSilent(true)
@@ -370,8 +376,7 @@ class RFMonitorService : Service() {
   }
 
   private fun refreshNotification() {
-    val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-    nm.notify(NOTIFICATION_ID, buildNotification())
+    if (startedForeground) startInForeground()
   }
 
   private fun startInForeground(): Boolean =
