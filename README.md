@@ -14,14 +14,15 @@ It's good practice to verify the APK's signing certificate against the [CERT.sha
 
 ## Features
 
-- **Live RF exposure gauge:** A single dBm figure for the total received RF power across cellular, Wi-Fi, and Bluetooth.
-- **Cellular:** Serving and neighbor cells on 5G, 4G, 3G, and 2G with operator, identifiers, bands, reference measurements, and a timing-advance distance estimate where available.
-- **Wi-Fi:** Access points on the 2.4, 5, and 6 GHz bands with vendor, security, cipher, channel, width, and a distance estimate (true 802.11mc FTM ranging where the hardware supports it).
+- **RF exposure:** A single live dBm figure for the total received RF power across cellular, Wi-Fi, and Bluetooth.
+- **Cellular:** Serving and neighbor cells on 5G, 4G, 3G, and 2G with operator, identifiers, bands, reference measurements, and a timing-advance distance estimate where available, across every active SIM.
+- **Wi-Fi:** Access points on the 2.4, 5, and 6 GHz bands with vendor, security, cipher, channel, width, and a distance estimate, including true 802.11mc FTM ranging where the hardware supports it.
 - **Bluetooth LE:** Advertising devices with name, MAC, vendor, RSSI, address type, PHY, service UUIDs, and decoded manufacturer data including iBeacon.
-- **GNSS:** Multi-constellation tracking with dual-frequency support, carrier-to-noise, elevation, azimuth, used-in-fix status, and a computed sub-satellite ground point.
+- **GNSS:** Multi-constellation tracking with dual-frequency support, carrier-to-noise, elevation, azimuth, range rate, used-in-fix status, and a computed sub-satellite ground point.
 - **Local-network scan:** Host discovery via TCP-connect probes and SSDP / UPnP, with banner grabbing, service fingerprinting, and reverse DNS, plus mDNS / DNS-SD service discovery.
 - **GATT inspector:** Connect to a BLE device, enumerate its services and characteristics, read and decode their values, and write to writable ones.
 - **iBeacon broadcast:** Broadcast as an iBeacon with configurable UUID, major, minor, and measured power.
+- **Filter and sort:** Narrow and reorder the Wi-Fi and Bluetooth lists by band, security, vendor, address type, or manufacturer.
 
 ## Android limitations
 
