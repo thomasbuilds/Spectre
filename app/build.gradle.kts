@@ -16,8 +16,8 @@ android {
     applicationId = "dev.thomasbuilds.spectre"
     minSdk = 31
     targetSdk = 37
-    versionCode = 102999
-    versionName = "0.1.2"
+    versionCode = 103999
+    versionName = "0.1.3"
     vectorDrawables.useSupportLibrary = true
   }
 
