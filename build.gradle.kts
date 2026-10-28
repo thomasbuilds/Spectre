@@ -26,4 +26,10 @@ spotless {
     trimTrailingWhitespace()
     endWithNewline()
   }
+  format("misc") {
+    target("**/*.md", "**/*.yml", "**/*.toml", "**/*.pro", "gradle.properties", "metadata/**/*.txt")
+    targetExclude("**/build/**")
+    trimTrailingWhitespace()
+    endWithNewline()
+  }
 }
