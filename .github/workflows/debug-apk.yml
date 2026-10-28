@@ -1,0 +1,78 @@
+name: Debug APK
+
+on:
+  pull_request:
+    paths: [app/**]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    outputs:
+      url: ${{ steps.upload.outputs.artifact-url }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+
+      - name: Assemble debug APK
+        env:
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+        run: ./gradlew :app:assembleDebug -Pcommit="${COMMIT_SHA:0:7}"
+
+      - name: Upload debug APK
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: spectre-debug.apk
+          path: app/build/outputs/apk/debug/spectre-debug.apk
+          archive: false
+          overwrite: true
+          retention-days: 14
+
+  link:
+    needs: build
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-slim
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Comment APK download link on PR
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          APK_URL: ${{ needs.build.outputs.url }}
+        with:
+          script: |
+            const marker = '<!-- spectre-debug-apk -->';
+            const body = `${marker}\n[Download the debug APK](${process.env.APK_URL}) for commit ${context.payload.pull_request.head.sha}`;
+            const { owner, repo, number: issue_number } = context.issue;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const existing = comments.find((c) => c.user?.login === 'github-actions[bot]' && c.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

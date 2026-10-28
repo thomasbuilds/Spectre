@@ -17,14 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    outputs:
-      apk-url: ${{ steps.apk.outputs.artifact-url }}
-
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 2
           persist-credentials: false
 
       - name: Set up JDK 25
@@ -45,27 +41,6 @@ jobs:
         id: lint
         run: ./gradlew :app:lintDebug
 
-      - name: Assemble debug APK
-        env:
-          COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: ./gradlew :app:assembleDebug -Pcommit="${COMMIT_SHA:0:7}"
-
-      - name: Detect app changes
-        id: changes
-        if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
-        run: git diff --quiet HEAD^1 HEAD -- app gradle '*.gradle.kts' gradle.properties || echo "app=true" >> "$GITHUB_OUTPUT"
-
-      - name: Upload debug APK (app changes only)
-        id: apk
-        if: steps.changes.outputs.app == 'true'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: spectre-debug.apk
-          path: app/build/outputs/apk/debug/spectre-debug.apk
-          archive: false
-          overwrite: true
-          retention-days: 14
-
       - name: Assemble release APK (R8)
         run: ./gradlew :app:assembleRelease
 
@@ -77,29 +52,3 @@ jobs:
           path: app/build/reports/lint-results-*.html
           overwrite: true
           retention-days: 7
-
-  comment-apk:
-    needs: verify
-    if: needs.verify.outputs.apk-url && !github.event.pull_request.head.repo.fork
-    runs-on: ubuntu-slim
-
-    permissions:
-      pull-requests: write
-
-    steps:
-      - name: Comment APK download link on PR
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        env:
-          APK_URL: ${{ needs.verify.outputs.apk-url }}
-        with:
-          script: |
-            const marker = '<!-- spectre-debug-apk -->';
-            const body = `${marker}\n[Download the debug APK](${process.env.APK_URL}) for commit ${context.payload.pull_request.head.sha}`;
-            const { owner, repo, number: issue_number } = context.issue;
-            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
-            const existing = comments.find((c) => c.user?.login === 'github-actions[bot]' && c.body?.includes(marker));
-            if (existing) {
-              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
-            } else {
-              await github.rest.issues.createComment({ owner, repo, issue_number, body });
-            }
