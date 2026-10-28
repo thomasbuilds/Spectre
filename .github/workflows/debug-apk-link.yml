@@ -1,0 +1,40 @@
+name: Debug APK link
+
+on:
+  workflow_run:
+    workflows: [Debug APK]
+    types: [requested, completed]
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  comment:
+    runs-on: ubuntu-slim
+
+    steps:
+      - name: Update the APK comment
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            if (run.path !== '.github/workflows/debug-apk.yml') return;
+            const { owner, repo } = context.repo;
+            const pulls = await github.paginate(github.rest.pulls.list, { owner, repo, head: `${run.head_repository?.owner.login}:${run.head_branch}` });
+            const pr = pulls.find((p) => p.head.sha === run.head_sha);
+            if (!pr) return;
+            const marker = '<!-- spectre-debug-apk -->';
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: pr.number });
+            const stale = comments.filter((c) => c.user?.login === 'github-actions[bot]' && c.body?.includes(marker));
+            for (const { id } of stale) await github.rest.issues.deleteComment({ owner, repo, comment_id: id });
+            if (run.conclusion !== 'success') return;
+            const { data: { artifacts: [apk] } } = await github.rest.actions.listWorkflowRunArtifacts({ owner, repo, run_id: run.id, name: 'spectre-debug.apk' });
+            if (!apk) return;
+            const fork = pr.head.repo?.full_name !== pr.base.repo.full_name;
+            const files = fork ? await github.paginate(github.rest.pulls.listFiles, { owner, repo, pull_number: pr.number }) : [];
+            const unseen = files.some(({ filename: f }) => !/^(app\/src|metadata)\/|\.md$/.test(f) || /\.(jar|aar|so|dex|apk)$/.test(f));
+            const body = unseen
+              ? 'No debug APK link: this pull request touches files that can put code in the APK without it showing in the diff.'
+              : `[Download the debug APK](${run.html_url}/artifacts/${apk.id}) for commit ${run.head_sha}`;
+            await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body: `${marker}\n${body}` });
