@@ -648,17 +648,23 @@ class CellularScanner(
 
   private companion object {
     const val TAG = "CellularScanner"
+
     const val STALE_TTL_MS = 60_000L
+
     const val NR_SSRSRP_TO_RSSI_OFFSET_DB = 30
     const val WCDMA_RSCP_TO_RSSI_OFFSET_DB = 10
+
     // Bottom of the valid Ec/No reporting range [-24, 1].
     const val WCDMA_ECNO_FLOOR_DB = -24
+
     // Just above UMTS reference sensitivity (≈ -117 dBm): a neighbor this weak is unusable
     // and indistinguishable from modem padding.
     const val WCDMA_NEIGHBOR_FLOOR_DBM = -115
     const val LTE_RSRP_FALLBACK_OFFSET_DB = 30
     const val LTE_RSSI_STALENESS_MS = 30_000L
+
     const val MAX_LTE_RSSI_OVER_RSRP_DB = 40
+
     const val CELL_HEARTBEAT_MS = 5_000L
     const val CELL_WARMUP_MS = 8_000L
   }
