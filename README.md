@@ -40,7 +40,7 @@ It's good practice to verify the APK's signing certificate against the [CERT.sha
 
 ## Sponsor
 
-Spectre is free, open-source, and ad-free. Donations toward its continued development are very welcome.
+Spectre is free, open-source, and ad-free. Donations toward its continued development are very welcome!
 
 ### Bitcoin
 
