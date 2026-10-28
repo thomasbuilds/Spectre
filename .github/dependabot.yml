@@ -2,52 +2,19 @@ version: 2
 
 updates:
   - package-ecosystem: gradle
-    directory: "/"
+    directory: /
     schedule:
       interval: weekly
-      time: "06:00"
-      timezone: Europe/Paris
-    commit-message:
-      prefix: deps
-      include: scope
     groups:
       compose:
-        patterns:
-          - "androidx.compose.*"
-          - "org.jetbrains.kotlin.plugin.compose"
-      kotlin:
-        patterns:
-          - "org.jetbrains.kotlin.*"
-        exclude-patterns:
-          - "org.jetbrains.kotlin.plugin.compose"
+        patterns: [androidx.compose*]
       androidx:
-        patterns:
-          - "androidx.*"
-        exclude-patterns:
-          - "androidx.compose.*"
-      android-tools:
-        patterns:
-          - "com.android.*"
-      formatter:
-        patterns:
-          - "com.diffplug.spotless"
+        patterns: [androidx.*]
 
   - package-ecosystem: github-actions
-    directory: "/"
+    directory: /
     schedule:
       interval: weekly
-      time: "06:00"
-      timezone: Europe/Paris
-    open-pull-requests-limit: 3
-    commit-message:
-      prefix: ci
-      include: scope
-    ignore:
-      - dependency-name: "*"
-        update-types:
-          - version-update:semver-patch
-          - version-update:semver-minor
     groups:
       actions:
-        patterns:
-          - "*"
+        update-types: [minor, patch]
