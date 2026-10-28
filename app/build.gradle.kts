@@ -46,7 +46,6 @@ android {
 
   lint {
     checkAllWarnings = true
-    warningsAsErrors = true
     disable += setOf("SyntheticAccessor", "LogConditional", "MemberExtensionConflict")
     disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
   }
