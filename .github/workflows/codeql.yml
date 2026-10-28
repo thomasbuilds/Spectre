@@ -4,24 +4,21 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: 17 6 * * 1
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-
-    permissions:
-      security-events: write
-      actions: read
-      contents: read
+    timeout-minutes: 15
 
     strategy:
       fail-fast: false
@@ -34,41 +31,36 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 25
         if: matrix.build-mode == 'manual'
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: "25"
 
-      - name: Set up Android SDK
-        if: matrix.build-mode == 'manual'
-        uses: android-actions/setup-android@v4
-        with:
-          packages: platform-tools
-
       - name: Set up Gradle
         if: matrix.build-mode == 'manual'
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+          cache-read-only: true
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           tools: linked
 
-      # build-mode: none does not extract Kotlin, so the java-kotlin database is
-      # built by tracing a real compile. --no-daemon keeps the compiler in the
-      # traced process, and --no-build-cache forces compileDebugKotlin to actually
-      # run instead of being served FROM-CACHE, so CodeQL can trace it.
       - name: Build for CodeQL
         if: matrix.build-mode == 'manual'
         run: ./gradlew --no-daemon --no-build-cache :app:compileDebugKotlin
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
-          category: "/language:${{ matrix.language }}"
+          category: /language:${{ matrix.language }}
