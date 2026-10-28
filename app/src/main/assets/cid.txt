@@ -3985,4 +3985,3 @@
 10D2	Hehku
 10D3	AGCO
 10D4	Victor Hasselblad
-10D5	IntelliDesign
