@@ -3,14 +3,9 @@ plugins {
   alias(libs.plugins.kotlin.compose)
 }
 
-val commit = (findProperty("commit") as String?)?.takeIf { it.isNotBlank() }
-val debugVersionSuffix = if (commit != null) "-debug-$commit" else "-debug"
-
 android {
   namespace = "dev.thomasbuilds.spectre"
-  compileSdk {
-    version = release(37)
-  }
+  compileSdk = 37
 
   defaultConfig {
     applicationId = "dev.thomasbuilds.spectre"
@@ -18,13 +13,12 @@ android {
     targetSdk = 37
     versionCode = 103999
     versionName = "0.1.3"
-    vectorDrawables.useSupportLibrary = true
   }
 
   buildTypes {
     debug {
       applicationIdSuffix = ".debug"
-      versionNameSuffix = debugVersionSuffix
+      versionNameSuffix = providers.gradleProperty("commit").map { "-debug-$it" }.getOrElse("-debug")
     }
     release {
       isMinifyEnabled = true
@@ -36,30 +30,21 @@ android {
       vcsInfo { include = false }
     }
   }
-  compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
-  }
-  buildFeatures {
-    compose = true
+
+  androidResources {
+    localeFilters += "en"
   }
 
   lint {
     checkAllWarnings = true
     warningsAsErrors = true
+    checkReleaseBuilds = false
     disable += setOf("SyntheticAccessor", "LogConditional", "MemberExtensionConflict")
     disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
   }
 
   dependenciesInfo {
     includeInApk = false
-    includeInBundle = false
-  }
-
-  bundle {
-    language { enableSplit = false }
-    density { enableSplit = false }
-    abi { enableSplit = false }
   }
 
   packaging {
@@ -73,9 +58,7 @@ base {
   archivesName = "spectre"
 }
 
-tasks.configureEach {
-  if (name.contains("ArtProfile")) enabled = false
-}
+tasks.named { it.contains("ArtProfile") }.configureEach { enabled = false }
 
 kotlin {
   jvmToolchain(25)
