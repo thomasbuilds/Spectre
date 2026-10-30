@@ -95,4 +95,5 @@ dependencies {
   implementation(libs.androidx.lifecycle.runtime)
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.process)
+  implementation(libs.kotlinx.coroutines.android)
 }
