@@ -2,7 +2,7 @@ name: Debug APK
 
 on:
   pull_request:
-    paths: [app/**]
+    paths: [app/**, gradle/**, "*.gradle.kts", gradle.properties]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,6 +20,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
       - name: Set up JDK 25
