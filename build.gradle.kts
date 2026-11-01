@@ -8,7 +8,17 @@ spotless {
     ktlint()
   }
   format("misc") {
-    target("**/*.md", "**/*.yml", "**/*.toml", "**/*.pro", "**/src/**/*.xml", "gradle.properties", "metadata/**/*.txt", "release")
+    target(
+      "**/*.md",
+      "**/*.yml",
+      "**/*.toml",
+      "**/*.pro",
+      "**/*.py",
+      "**/src/**/*.xml",
+      "gradle.properties",
+      "metadata/**/*.txt",
+      "release"
+    )
     trimTrailingWhitespace()
     endWithNewline()
   }

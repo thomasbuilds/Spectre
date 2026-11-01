@@ -1,0 +1,52 @@
+name: Vendor lists
+
+on:
+  schedule:
+    - cron: 23 6 1 * *
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Refresh the lists
+        id: refresh
+        run: |
+          {
+            echo "summary<<EOF"
+            python3 .github/scripts/vendor-lists.py
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SUMMARY: ${{ steps.refresh.outputs.summary }}
+        run: |
+          git add app/src/main/assets
+          git diff --cached --quiet && exit 0
+          gh auth setup-git
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -qC vendor-lists
+          git commit -qm "Refresh vendor lists"
+          git push -qf origin vendor-lists
+          number="$(gh pr list --head vendor-lists --state open --json number --jq '.[].number')"
+          if [[ -n $number ]]; then
+            gh pr edit "$number" --body "$SUMMARY"
+          else
+            gh pr create --head vendor-lists --title "Refresh vendor lists" --body "$SUMMARY"
+          fi
