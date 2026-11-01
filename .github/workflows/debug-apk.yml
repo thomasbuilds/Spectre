@@ -37,7 +37,7 @@ jobs:
       - name: Assemble debug APK
         env:
           COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
-        run: ./gradlew :app:assembleDebug -Pcommit="${COMMIT_SHA:0:7}"
+        run: ./gradlew :app:assembleDebug -Pcommit="${COMMIT_SHA:0:7}" -Pminify
 
       - name: Upload debug APK
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

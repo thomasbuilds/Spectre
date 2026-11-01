@@ -13,20 +13,21 @@ android {
     targetSdk = 37
     versionCode = 103999
     versionName = "0.1.3"
+    proguardFiles(
+      getDefaultProguardFile("proguard-android-optimize.txt"),
+      "proguard-rules.pro"
+    )
   }
 
   buildTypes {
     debug {
       applicationIdSuffix = ".debug"
       versionNameSuffix = providers.gradleProperty("commit").map { "-debug-$it" }.getOrElse("-debug")
+      isMinifyEnabled = providers.gradleProperty("minify").isPresent
     }
     release {
       isMinifyEnabled = true
       isShrinkResources = true
-      proguardFiles(
-        getDefaultProguardFile("proguard-android-optimize.txt"),
-        "proguard-rules.pro"
-      )
       vcsInfo { include = false }
     }
   }
@@ -50,6 +51,9 @@ android {
   packaging {
     jniLibs {
       keepDebugSymbols += "**/*.so"
+    }
+    resources {
+      excludes += setOf("DebugProbesKt.bin", "**/*.kotlin_builtins")
     }
   }
 }
