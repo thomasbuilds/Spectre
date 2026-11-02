@@ -13,6 +13,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import unicodedata
 from pathlib import Path
 
@@ -58,10 +59,14 @@ PUNCTUATION = " ,;:&-"
 
 def fetch(url):
   # curl, not urllib: urllib waits out every unreachable IPv6 address before trying IPv4.
-  result = subprocess.run(["curl", "-fsSL", "--retry", "3", "--max-time", "120", url], capture_output=True)
-  if result.returncode:
-    sys.exit(f"error: cannot download {url}: {result.stderr.decode().strip()}")
-  return result.stdout.decode("utf-8-sig")
+  # Retried here: curl's --retry skips failed connections and --retry-all-errors can repeat piped output.
+  for attempt in range(6):
+    if attempt:
+      time.sleep(10)
+    result = subprocess.run(["curl", "-fsSL", "--max-time", "60", url], capture_output=True)
+    if not result.returncode:
+      return result.stdout.decode("utf-8-sig")
+  sys.exit(f"error: cannot download {url}: {result.stderr.decode().strip()}")
 
 
 def ieee_names():

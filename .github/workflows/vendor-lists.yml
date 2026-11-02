@@ -25,11 +25,9 @@ jobs:
       - name: Refresh the lists
         id: refresh
         run: |
-          {
-            echo "summary<<EOF"
-            python3 .github/scripts/vendor-lists.py
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          summary="$(python3 .github/scripts/vendor-lists.py)"
+          echo "$summary"
+          printf 'summary<<EOF\n%s\nEOF\n' "$summary" >> "$GITHUB_OUTPUT"
 
       - name: Open or update the pull request
         env:
