@@ -16186,7 +16186,7 @@
 00A054	Private
 00A055	Data Device
 00A056	Micropross
-00A057	LANCOM Systems
+00A057	Rohde & Schwarz Networks and Cybersecurity
 00A058	Glory
 00A059	Hamilton Hallmark
 00A05A	Kofax Image Products
@@ -18589,6 +18589,7 @@
 08F4AB	Apple
 08F4F0	Cisco Systems
 08F606	ZTE
+08F679	Huawei Device
 08F69C	Apple
 08F6F8	GET Engineering
 08F728	GLOBO Multimedia Sp. z o.o. Sp.k.
@@ -21666,6 +21667,7 @@
 20AB53	Motorola Mobility
 20AC9C	China Telecom
 20AD56	AUMOVIO Systems
+20AD72	eero
 20AEB6	Huawei Device
 20AF1B	SteelSeries
 20B001	Vantiva Technologies Belgium
@@ -23355,7 +23357,7 @@
 2CD3AD	Texas Instruments
 2CD444	Fujitsu
 2CD748	Itron
-2CD7FF	LANCOM Systems
+2CD7FF	Rohde & Schwarz Networks and Cybersecurity
 2CD8AE	Shenzhen SEI Robotics
 2CD8DE	AltoBeam
 2CD974	Hui Zhou Gaoshengda Technology
@@ -23392,6 +23394,7 @@
 2CEADA	ICC Intelligent Platforms
 2CEADC	Askey Computer
 2CEAFC	Intel
+2CEB66	Huawei Device
 2CECA6	Huawei Technologies
 2CECF7	Shenzhen SDMC Technology
 2CED89	Huawei Technologies
@@ -23434,6 +23437,7 @@
 300505	Intel
 30053F	JTI
 30055C	Brother industries
+3005C8	Huawei Device
 30074D	Samsung Electro-Mechanics (Thailand)
 30075C	Netis Technology
 3007A3	Shenzhen Skyworth Digital Technology
@@ -24025,6 +24029,7 @@
 341B22	Grandbeing Technology
 341B2D	Cisco Systems
 341CF0	Xiaomi Communications
+341E64	Huawei Device
 341E6B	Huawei Technologies
 341FC4	Shenzhen V-Link Technology
 341FE4	Commscope
@@ -24034,6 +24039,7 @@
 342109	Jensen Scandinavia
 3422CF	AUMOVIO Systems
 342387	Hon Hai Precision Ind.
+34238E	eero
 3423BA	Samsung Electro-Mechanics (Thailand)
 34243E	ZTE
 34255D	Shenzhen Loadcom Technology
@@ -27841,6 +27847,7 @@
 4C63AD	Huawei Device
 4C63EB	Application Solutions (Electronics and Vision)
 4C6460	Itel Mobile
+4C64C9	Huawei Device
 4C64D9	Guangdong Leawin Group
 4C65A80	WELT
 4C65A81	Beijing Bluehalo Internet
@@ -28320,6 +28327,7 @@
 50236D	Nintendo
 5023A2	Apple
 50252B	Nethra Imaging
+5025FE	Huawei Device
 502690	Fujitsu
 5026D2	AVIRE Trading
 5026EF	Murata Manufacturing
@@ -28950,6 +28958,7 @@
 543E64	Fiberhome Telecommunication Technologies
 5440AD	Samsung Electronics
 544249	Sony
+544387	Huawei Device
 5443B2	Espressif
 544408	Nokia
 54443B	Huawei Technologies
@@ -36859,6 +36868,7 @@
 70BC48	Cisco Systems
 70BD96	Cisco Systems
 70BDD2	Adva Network Security
+70BE8E	Huawei Device
 70BF3E	Charles River Laboratories
 70BF92	GN Audio
 70C288	Intel
@@ -38972,6 +38982,7 @@
 806DDE	Beken
 806F1C	Huawei Device
 806FB0	Texas Instruments
+807039	Huawei Device
 80711F	Juniper Networks
 80717A	Huawei Technologies
 807215	SKY UK
@@ -40839,6 +40850,7 @@
 8C1F64269	Sicon
 8C1F6426B	Profcon
 8C1F6426C	Diatech
+8C1F6426D	Blueprint Subsea
 8C1F6426E	Koizumi Lighting Technology
 8C1F6426F	QUISS
 8C1F64270	Xi‘an Hangguang Satellite and Control Technology
@@ -43167,6 +43179,7 @@
 8C1F64EF1	Biotage GB
 8C1F64EF4	Mediaport Systems
 8C1F64EF5	Sigma Defense Systems
+8C1F64EF6	Uncommon Group
 8C1F64EF8	Northwest Central Indiana Community Partnerships Inc dba Wabash Heartland Innovation Network (WHIN)
 8C1F64EFB	Warecube
 8C1F64EFC	LonTen Technology (BeiJing)
@@ -43659,6 +43672,7 @@
 8C9A8F	Sagemcom Broadband
 8C9B2D	Plantronics
 8C9F3B	Qingdao Hisense Communications
+8CA02C	Arcadyan
 8CA048	Beijing NeTopChip Technology
 8CA229	Huawei Device
 8CA2F5	Huawei Device
@@ -43920,6 +43934,7 @@
 901A4F	EM Microelectronic
 901ACA	Commscope
 901B0E	Fujitsu Technology Solutions
+901C23	Huawei Device
 901C9E	Alcatel-Lucent Enterprise
 901D27	ZTE
 901DFF	ZOWEE TECHNOLOGY (HEYUAN)
