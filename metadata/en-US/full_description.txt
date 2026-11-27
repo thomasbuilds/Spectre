@@ -3,16 +3,16 @@ It monitors signals from Bluetooth devices, Wi-Fi access points, cellular towers
 Spectre also features a growing set of pentesting tools, constrained by Android's security model.
 
 Features:
-• RF exposure - total received power from cellular, Wi-Fi, and Bluetooth as one live dBm reading
+• RF exposure - estimated total received power from cellular, Wi-Fi, and Bluetooth as one live dBm reading, on a gauge and in the notification
 • Cellular - serving and neighbor cells on 5G, 4G, 3G, and 2G, across every active SIM
-• Wi-Fi - 2.4, 5, and 6 GHz access points, with security analysis and 802.11mc FTM ranging
+• Wi-Fi - 2.4, 5, and 6 GHz access points, with security analysis and FTM ranging (802.11mc, plus 802.11az on Android 15+)
 • Bluetooth LE - advertising devices with decoded manufacturer data, including iBeacons
-• GNSS - multi-constellation, dual-frequency satellite tracking with live sky geometry
+• GNSS - multi-constellation, dual-frequency satellite tracking with elevation, azimuth, and range rate
 • Local network scan - discover hosts, open ports, and running services on your network
-• GATT inspector - connect to a BLE device to read, decode, and write its characteristics
-• iBeacon broadcast - advertise your phone as a configurable iBeacon
+• GATT inspector - connect to a BLE device to read and decode its characteristics (read-only)
 • Filter and sort - focus the Wi-Fi and Bluetooth lists on specific devices
+• Theme - light, dark, or follow the system
 
-Spectre requests location and other permissions only because Android gates these signals behind them.
+Spectre requests location and other permissions only because Android requires them to read these signals, connect to the devices you inspect, scan your local network, and show the monitoring notification.
 Everything runs on-device, with no ads, trackers, analytics, or Google Play Services.
 Network access is used only to probe devices on your own local network.

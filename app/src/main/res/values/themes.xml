@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <style name="Theme.Spectre" parent="android:Theme.Material.NoActionBar">
-    <item name="android:windowBackground">@android:color/transparent</item>
-    <item name="android:statusBarColor">@android:color/transparent</item>
-    <item name="android:navigationBarColor">@android:color/transparent</item>
-    <item name="android:windowSplashScreenBackground">@color/splash_bg</item>
+  <style name="Theme.Spectre" parent="android:Theme.DeviceDefault.DayNight">
+    <item name="android:windowActionBar">false</item>
+    <item name="android:windowNoTitle">true</item>
+    <item name="android:windowBackground">@color/background</item>
   </style>
 </resources>

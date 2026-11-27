@@ -2,12 +2,14 @@
 <data-extraction-rules>
   <cloud-backup disableIfNoEncryptionCapabilities="true">
     <exclude domain="root" />
+    <exclude domain="file" />
     <exclude domain="database" />
     <exclude domain="sharedpref" />
     <exclude domain="external" />
   </cloud-backup>
   <device-transfer>
     <exclude domain="root" />
+    <exclude domain="file" />
     <exclude domain="database" />
     <exclude domain="sharedpref" />
     <exclude domain="external" />

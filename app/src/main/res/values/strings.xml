@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <string name="app_name">Spectre</string>
-  <string name="notification_channel_name">RF environment monitor</string>
-  <string name="notification_channel_description">Continuous monitoring of ambient RF signals</string>
 </resources>
